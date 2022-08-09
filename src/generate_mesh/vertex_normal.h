@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VERTEX_NORMAL_H_
 #define VERTEX_NORMAL_H_
 #include "../mesh_utils.h"
