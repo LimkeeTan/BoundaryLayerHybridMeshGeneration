@@ -1,5 +1,7 @@
 #include "vertex_normal.h"
 
+#include "../mesh_io/mesh_io.h"
+
 namespace vertex_normal {
 	int constructTriNormalMat(const std::vector < std::vector < double > >& triNormal,
 		const std::unordered_map < size_t, std::vector < size_t > >& verTriMap,
@@ -131,6 +133,9 @@ namespace vertex_normal {
 			}
 			meshNormal.verticesNormal[i] = singleNormal;
 		}
+
+		//Test
+		mesh_io::saveVTK("data/wanxiangjie_normal.vtk", mesh.matVertices, mesh.matCells, meshNormal.verticesNormal);
 		return 1;
 	}
 }
