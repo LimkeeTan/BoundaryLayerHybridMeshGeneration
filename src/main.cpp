@@ -5,8 +5,8 @@
 int main(int argc, char** argv)
 {
 	global_type::Mesh mesh;
-	std::string inputMeshFile = "data/1.obj";
-	std::string outputMeshFile = "data/2.vtk";
+	std::string inputMeshFile = "data/wanxiangjie.obj";
+	std::string outputMeshFile = "data/wanxiangjie.vtk";
 
 	if (!mesh_io::readTriOBJ(inputMeshFile, mesh.vecVertices, mesh.vecCells)) {
 		std::cout << "failed to read obj mesh" << std::endl;
