@@ -16,6 +16,12 @@ namespace mesh_io {
 		const std::vector < std::vector < size_t > >& cells
 	);
 
+	int saveVTK(const std::string& filename,
+		const Eigen::MatrixXd& vertices,
+		const Eigen::MatrixXi& cells,
+		const std::vector < std::vector < double > >& vertexNormal
+	);
+	
 	int readTriOBJ(const std::string& filename,
 		std::vector < std::vector < double > >& vertices,
 		std::vector < std::vector < size_t > >& cells
