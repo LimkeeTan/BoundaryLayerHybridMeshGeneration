@@ -1,4 +1,3 @@
-#pragma once
 #ifndef MESH_IO_H_
 #define MESH_IO_H_
 #include <Eigen/Eigen>
