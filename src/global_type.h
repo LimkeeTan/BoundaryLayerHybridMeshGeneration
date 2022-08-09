@@ -1,4 +1,3 @@
-#pragma once
 #ifndef GLOBAL_TYPE_H_
 #define GLOBAL_TYPE_H_
 #include <vector>
