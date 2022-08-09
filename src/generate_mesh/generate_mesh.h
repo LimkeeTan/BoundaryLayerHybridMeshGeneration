@@ -1,4 +1,3 @@
-#pragma once
 #ifndef GENERATE_MESH_H_
 #define GENERATE_MESH_H_
 #include "../mesh_utils.h"
