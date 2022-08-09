@@ -1,4 +1,3 @@
-#pragma once
 #ifndef MESH_UTILS_H_
 #define MESH_UTILS_H_
 #include "global_type.h"
