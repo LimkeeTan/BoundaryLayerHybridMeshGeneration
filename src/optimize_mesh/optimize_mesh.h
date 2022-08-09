@@ -1,4 +1,3 @@
-#pragma once
 #ifndef OPTIMIZE_MESH_H_
 #define OPTIMIZE_MESH_H_
 #include "../global_type.h"
