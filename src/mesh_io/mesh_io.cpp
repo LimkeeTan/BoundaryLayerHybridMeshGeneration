@@ -193,6 +193,68 @@ namespace mesh_io {
 		return 1;
 	}
 
+	int saveVTK(const std::string& filename,
+		const Eigen::MatrixXd& vertices,
+		const Eigen::MatrixXi& cells,
+		const std::vector < std::vector < double > >& vertexNormal
+	)
+	{
+		std::ofstream os;
+		os.open(filename);
+		os << "# vtk DataFile Version 3.0\nVolume mesh\nASCII\n\nDATASET UNSTRUCTURED_GRID\n";
+
+		os << "POINTS " << vertices.rows() + vertexNormal.size() << " double\n";
+		for (size_t i = 0; i < vertices.rows(); ++i) {
+			os << vertices(i, 0) << " " << vertices(i, 1) << " " << vertices(i, 2) << "\n";
+		}
+		std::vector < std::vector < double > > normalPoints;
+		normalPoints.resize(vertexNormal.size());
+		for (size_t i = 0; i < vertexNormal.size(); ++i)
+		{
+			std::vector < double > oriVertex(3);
+			oriVertex[0] = vertices(i, 0);
+			oriVertex[1] = vertices(i, 1);
+			oriVertex[2] = vertices(i, 2);
+			std::vector < double > modifyVertex(3);
+			modifyVertex[0] = oriVertex[0] + vertexNormal[i][0];
+			modifyVertex[1] = oriVertex[1] + vertexNormal[i][1];
+			modifyVertex[2] = oriVertex[2] + vertexNormal[i][2];
+			normalPoints[i] = modifyVertex;
+		}
+		for (size_t i = 0; i < vertexNormal.size(); ++i)
+		{
+			os << normalPoints[i][0] << " " << normalPoints[i][1] << " " << normalPoints[i][2] << "\n";
+		}
+		os << "CELLS " << cells.rows() + vertexNormal.size() << " " << cells.rows() * 4 + vertexNormal.size() * 3 << "\n";
+		for (size_t i = 0; i < cells.rows(); ++i) {
+			os << 3 << " " << cells(i, 0) << " " << cells(i, 1) << " " << cells(i, 2) << "\n";
+		}
+		for (size_t i = 0; i < vertexNormal.size(); ++i)
+		{
+			os << 2 << " " << i << " " << i + vertices.rows() << "\n";
+		}
+		os << "CELL_TYPES " << cells.rows() + vertexNormal.size() << "\n";
+		for (size_t i = 0; i < cells.rows(); ++i) {
+			os << 5 << "\n";
+		}
+		for (size_t i = 0; i < vertexNormal.size(); ++i)
+		{
+			os << 3 << "\n";
+		}
+		os << "POINT_DATA " << vertices.rows() + vertexNormal.size() << "\n";
+		os << "SCALARS fixed int" << "\n";
+		os << "LOOKUP_TABLE default" << "\n";
+		for (size_t i = 0; i < vertices.rows(); ++i) {
+			os << 0 << "\n";
+		}
+		for (size_t i = 0; i < vertexNormal.size(); ++i)
+		{
+			os << 1 << "\n";
+		}
+		os.close();
+		return 1;
+	}
+	
 	int readTriOBJ(const std::string& filename,
 		std::vector < std::vector < double > >& vertices,
 		std::vector < std::vector < size_t > >& cells
