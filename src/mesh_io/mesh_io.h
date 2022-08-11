@@ -20,7 +20,7 @@ namespace mesh_io {
 		const Eigen::MatrixXi& cells,
 		const std::vector < std::vector < double > >& vertexNormal
 	);
-	
+
 	int readTriOBJ(const std::string& filename,
 		std::vector < std::vector < double > >& vertices,
 		std::vector < std::vector < size_t > >& cells
@@ -29,6 +29,10 @@ namespace mesh_io {
 	int saveTriOBJ(const std::string& filename,
 		const std::vector < std::vector < double > >& vertices,
 		const std::vector < std::vector < size_t > >& cells
+	);
+
+	int saveNormalFile(const std::string& filename,
+		const std::vector < std::vector < double > >& VertexNormal
 	);
 }
 

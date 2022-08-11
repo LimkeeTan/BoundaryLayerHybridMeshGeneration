@@ -254,7 +254,7 @@ namespace mesh_io {
 		os.close();
 		return 1;
 	}
-	
+
 	int readTriOBJ(const std::string& filename,
 		std::vector < std::vector < double > >& vertices,
 		std::vector < std::vector < size_t > >& cells
@@ -322,6 +322,21 @@ namespace mesh_io {
 		}
 		for (size_t i = 0; i < cells.size(); ++i) {
 			os << "f " << cells[i][0] + 1 << " " << cells[i][1] + 1 << " " << cells[i][2] + 1 << "\n";
+		}
+		os.close();
+		return 1;
+	}
+
+	int saveNormalFile(const std::string& filename,
+		const std::vector < std::vector < double > >& VertexNormal
+	)
+	{
+		std::ofstream os(filename);
+		if (!os)
+			return 0;
+		for (size_t i = 0; i < VertexNormal.size(); ++i)
+		{
+			os << VertexNormal[i][0] << " " << VertexNormal[i][1] << " " << VertexNormal[i][2] << "\n";
 		}
 		os.close();
 		return 1;
