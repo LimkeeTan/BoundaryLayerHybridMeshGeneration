@@ -16,6 +16,7 @@ namespace global_type {
 	struct MeshNormal {
 		std::vector < std::vector < double > > verticesNormal;
 		std::vector < std::vector < double > > cellsNormal;
+		std::vector < std::vector < double > > verticesNormalizedNormal;
 	};
 }
 
