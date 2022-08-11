@@ -18,6 +18,12 @@ namespace global_type {
 		std::vector < std::vector < double > > cellsNormal;
 		std::vector < std::vector < double > > verticesNormalizedNormal;
 	};
+
+	struct Parameter {
+		int layerNumber;
+		double firstHeight;
+		double increaseRatio;
+	};
 }
 
 #endif

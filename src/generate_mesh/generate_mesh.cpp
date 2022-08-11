@@ -11,7 +11,7 @@ namespace generate_mesh {
 			std::cout << "failed to compute vertex normal" << std::endl;
 			return 0;
 		}
-		if (!march_vertex::computeMarchVertex(*m_mesh, m_meshNormal, m_prismTopo)) {
+		if (!march_vertex::computeMarchVertex(*m_mesh, m_meshNormal, m_param, m_prismTopo)) {
 			std::cout << "failed to compute marching vertices" << std::endl;
 			return 0;
 		}

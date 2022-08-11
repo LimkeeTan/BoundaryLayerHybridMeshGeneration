@@ -8,14 +8,22 @@ namespace generate_mesh {
 	class GenerateMesh
 	{
 	public:
-		GenerateMesh(global_type::Mesh* mesh) :m_mesh(mesh) {}
+		GenerateMesh(const global_type::Parameter& param,
+			global_type::Mesh* mesh) :
+			m_param(param),
+			m_mesh(mesh) 
+		{}
 
 		~GenerateMesh() {}
 
-		GenerateMesh(const GenerateMesh& generateMesh) :m_mesh(generateMesh.m_mesh) {}
+		GenerateMesh(const GenerateMesh& generateMesh) :
+			m_mesh(generateMesh.m_mesh),
+			m_param(generateMesh.m_param)
+		{}
 
 		int generate();
 	private:
+		global_type::Parameter m_param;
 		global_type::Mesh* m_mesh;
 		global_type::MeshNormal m_meshNormal;
 		global_type::Mesh m_prismTopo;

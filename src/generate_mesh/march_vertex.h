@@ -7,6 +7,7 @@
 namespace march_vertex {
 	int computeMarchVertex(const global_type::Mesh& mesh,
 		const global_type::MeshNormal& meshNormal,
+		const global_type::Parameter& param,
 		global_type::Mesh& prismTopo
 	);
 }

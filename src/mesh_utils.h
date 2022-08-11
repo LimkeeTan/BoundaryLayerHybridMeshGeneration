@@ -3,17 +3,17 @@
 #include "global_type.h"
 
 namespace mesh_utils {
-	bool isInVector(const std::vector < size_t >& vec, 
+	bool isInVector(const std::vector < size_t >& vec,
 		const int& value
 	);
 
-	bool isInVector(const std::vector < size_t >& vec, 
+	bool isInVector(const std::vector < size_t >& vec,
 		const size_t& value
 	);
 
 	int convertVecToMat(global_type::Mesh& mesh);
 
-	int computeTriNormal(const global_type::Mesh& mesh, 
+	int computeTriNormal(const global_type::Mesh& mesh,
 		global_type::MeshNormal& meshNormal
 	);
 
