@@ -70,7 +70,7 @@ namespace mesh_utils {
 			v2 = mesh.matVertices.row(mesh.matCells(i, 2));
 			e0 = v1 - v0;
 			e1 = v2 - v0;
-			normal = e0.cross(e1);
+			normal = e1.cross(e0);
 			normalizedNormal = normal.normalized();
 			for (int j = 0; j < 3; ++j) {
 				singleNormal[j] = normalizedNormal[j];
