@@ -2,6 +2,7 @@
 #define GENERATE_MESH_H_
 #include "../mesh_utils.h"
 #include "vertex_normal.h"
+#include "march_vertex.h"
 
 namespace generate_mesh {
 	class GenerateMesh
@@ -17,6 +18,7 @@ namespace generate_mesh {
 	private:
 		global_type::Mesh* m_mesh;
 		global_type::MeshNormal m_meshNormal;
+		global_type::Mesh m_prismTopo;
 	};
 }
 

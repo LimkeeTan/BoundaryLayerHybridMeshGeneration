@@ -1,7 +1,5 @@
 #include "vertex_normal.h"
 
-#include "../mesh_io/mesh_io.h"
-
 namespace vertex_normal {
 	int constructTriNormalMat(const std::vector < std::vector < double > >& triNormal,
 		const std::unordered_map < size_t, std::vector < size_t > >& verTriMap,
@@ -26,15 +24,15 @@ namespace vertex_normal {
 		C.setFromTriplets(triplet.begin(), triplet.end());
 	}
 
-	void optimization(const Eigen::SparseMatrix<double>& C, const size_t& sizeOfX, Eigen::VectorXd& x)
+	void globalOptimization(const Eigen::SparseMatrix < double >& C, const size_t& sizeOfX, Eigen::VectorXd& x)
 	{
-		Eigen::SparseMatrix<double> H;
+		Eigen::SparseMatrix < double > H;
 		Eigen::VectorXd f;
 		Eigen::VectorXd lowerBound;
 		Eigen::VectorXd upperBound;
 
 		H.resize(sizeOfX, sizeOfX);
-		std::vector<Eigen::Triplet<double>> triplet;
+		std::vector < Eigen::Triplet < double > > triplet;
 		for (size_t i = 0; i < sizeOfX; ++i)
 		{
 			triplet.emplace_back(i, i, 2);
@@ -98,18 +96,112 @@ namespace vertex_normal {
 			std::cout << "solve failed\n";
 			return;
 		}
-		clock_t time_start = clock();
-		clock_t time_end = clock();
-		time_start = clock();
 		x = solver.getSolution();
-		time_end = clock();
-		std::cout << "time use:" << 1000 * (time_end - time_start) / (double)CLOCKS_PER_SEC << "ms" << std::endl;
+	}
+
+	void localOptimization(const std::unordered_map < size_t, std::vector < size_t > >& verTriMap,
+		global_type::MeshNormal& meshNormal
+	)
+	{
+		meshNormal.verticesNormal.resize(verTriMap.size());
+		for (size_t i = 0; i < verTriMap.size(); ++i) {
+			Eigen::SparseMatrix< double > C;
+			Eigen::VectorXd x;
+			C.resize(verTriMap.at(i).size(), 3);
+			for (int j = 0; j < verTriMap.at(i).size(); ++j) {
+				for (int k = 0; k < 3; ++k) {
+					C.insert(j, k) = meshNormal.cellsNormal[verTriMap.at(i)[j]][k];
+				}
+			}
+			Eigen::SparseMatrix < double > H;
+			Eigen::VectorXd f;
+			Eigen::VectorXd lowerBound;
+			Eigen::VectorXd upperBound;
+			H.resize(3, 3);
+			H.insert(0, 0) = 2;
+			H.insert(1, 0) = 0;
+			H.insert(2, 0) = 0;
+			H.insert(0, 1) = 0;
+			H.insert(1, 1) = 2;
+			H.insert(2, 1) = 0;
+			H.insert(0, 2) = 0;
+			H.insert(1, 2) = 0;
+			H.insert(2, 2) = 2;
+			f.resize(3);
+			f.setZero();
+			lowerBound.resize(C.rows());
+			upperBound.resize(C.rows());
+			for (int j = 0; j < lowerBound.size(); ++j) {
+				lowerBound[j] = 1;
+				upperBound[j] = OsqpEigen::INFTY;
+			}
+			OsqpEigen::Solver solver;
+			solver.settings()->setWarmStart(true);
+			solver.data()->setNumberOfVariables(C.cols());
+			solver.data()->setNumberOfConstraints(C.rows());
+			if (!solver.data()->setHessianMatrix(H))
+			{
+				std::cout << "setHessianMatrix failed\n";
+				return;
+			}
+			if (!solver.data()->setGradient(f))
+			{
+				std::cout << "setGradient failed\n";
+				return;
+			}
+			if (!solver.data()->setLinearConstraintsMatrix(C))
+			{
+				std::cout << "setLinearConstraintsMatrix failed\n";
+				return;
+			}
+			if (!solver.data()->setLowerBound(lowerBound))
+			{
+				std::cout << "setLowerBound failed\n";
+				return;
+			}
+			if (!solver.data()->setUpperBound(upperBound))
+			{
+				std::cout << "setUpperBound failed\n";
+				return;
+			}
+			// instantiate the solver
+
+			if (!solver.initSolver())
+			{
+				std::cout << "initSolver failed\n";
+				return;
+			}
+
+			// solve the QP problem
+
+			if (!solver.solve())
+			{
+				std::cout << "solve failed\n";
+				return;
+			}
+			x = solver.getSolution();
+			//Eigen::Vector3d normalizedNormal = x.normalized();
+			for (int j = 0; j < x.size(); ++j) {
+				meshNormal.verticesNormal[i].emplace_back(x[j]);
+			}
+		}
+	}
+
+	bool discardNormal(const std::vector < double >& normal)
+	{
+		if (std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]) > 1.3) return true;
+		else return false;
 	}
 
 	int computeVertexNormal(const global_type::Mesh& mesh,
 		global_type::MeshNormal& meshNormal
 	)
 	{
+		//mesh_utils::computeTriNormal(mesh, meshNormal);
+		//std::unordered_map < size_t, std::vector < size_t > > verTriMap;
+		//mesh_utils::constructVerTriMap(mesh.matCells, verTriMap);
+		//localOptimization(verTriMap, meshNormal);
+
 		mesh_utils::computeTriNormal(mesh, meshNormal);
 		std::unordered_map < size_t, std::vector < size_t > > verTriMap;
 		mesh_utils::constructVerTriMap(mesh.matCells, verTriMap);
@@ -117,25 +209,35 @@ namespace vertex_normal {
 		size_t sizeOfX = mesh.matVertices.rows() * 3;
 		constructTriNormalMat(meshNormal.cellsNormal, verTriMap, C);
 		Eigen::VectorXd x;
-		optimization(C, sizeOfX, x);
+		globalOptimization(C, sizeOfX, x);
 		meshNormal.verticesNormal.resize(mesh.matVertices.rows());
+		meshNormal.verticesNormalizedNormal.resize(mesh.matVertices.rows());
 		Eigen::Vector3d normal;
-		Eigen::Vector3d normalizedNormal;
 		std::vector < double > singleNormal(3);
 		for (size_t i = 0; i < meshNormal.verticesNormal.size(); ++i)
 		{
 			normal[0] = x[i * 3];
 			normal[1] = x[i * 3 + 1];
 			normal[2] = x[i * 3 + 2];
-			normalizedNormal = normal.normalized();
 			for (int j = 0; j < 3; ++j) {
-				singleNormal[j] = normalizedNormal[j];
+				singleNormal[j] = normal[j];
 			}
-			meshNormal.verticesNormal[i] = singleNormal;
+			if (discardNormal(singleNormal)) {
+				for (int j = 0; j < 3; ++j) singleNormal[j] = 0;
+				meshNormal.verticesNormal[i] = singleNormal;
+				meshNormal.verticesNormalizedNormal[i] = singleNormal;
+			}
+			else {
+				meshNormal.verticesNormal[i] = singleNormal;
+				normal.normalize();
+				for (int j = 0; j < 3; ++j) singleNormal[j] = normal[j];
+				meshNormal.verticesNormalizedNormal[i] = singleNormal;
+			}
 		}
 
 		//Test
-		mesh_io::saveVTK("data/wanxiangjie_normal.vtk", mesh.matVertices, mesh.matCells, meshNormal.verticesNormal);
+		//mesh_io::saveVTK("data/wanxiangjie_global_normal.vtk", mesh.matVertices, mesh.matCells, meshNormal.verticesNormal);
+		//mesh_io::saveNormalFile("data/wanxiangjie_global_normal.txt", meshNormal.verticesNormal);
 		return 1;
 	}
 }
