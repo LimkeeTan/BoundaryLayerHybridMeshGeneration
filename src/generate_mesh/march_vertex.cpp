@@ -7,73 +7,114 @@ namespace march_vertex {
 		else return false;
 	}
 
-	int generateCell(const size_t& B0,
-		const size_t& T0,
-		const size_t& B1,
-		const size_t& T1,
-		const size_t& B2,
-		const size_t& T2,
-		std::vector < size_t >& singleCell
+	int generateVertices(const std::vector < std::vector < double > >& vertices,
+		const std::vector < std::vector < double > >& normalizedNorm,
+		const int& layerNum,
+		const double& eps,
+		global_type::Mesh& prismTopo,
+		std::unordered_map < size_t, std::vector < size_t > >& vertMap
 	)
 	{
-		//prism
-		if (T0 != B0 && T1 != B1 && T2 != B2) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(T0);
-			singleCell.emplace_back(T1);
-			singleCell.emplace_back(T2);
+		std::vector < double > initVertex(3);
+		std::vector < double > marchVertex(3);
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			initVertex = vertices[i];
+			vertMap[i].emplace_back(i);
+			if (noNormal(normalizedNorm[i])) continue;
+			for (int j = 0; j < layerNum; ++j) {
+				for (int k = 0; k < 3; ++k) {
+					marchVertex[k] = initVertex[k] + eps * normalizedNorm[i][k];
+				}
+				prismTopo.vecVertices.emplace_back(marchVertex);
+				vertMap[i].emplace_back(prismTopo.vecVertices.size() - 1);
+				initVertex = marchVertex;
+			}
 		}
+		return 1;
+	}
 
-		//pyramid
-		if (T0 == B0 && T1 != B1 && T2 != B2) {
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(T1);
-			singleCell.emplace_back(T2);
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(B0);
-		}
-		if (T1 == B1 && T0 != B0 && T2 != B2) {
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(T2);
-			singleCell.emplace_back(T0);
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-		}
-		if (T2 == B2 && T0 != B0 && T1 != B1) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(T0);
-			singleCell.emplace_back(T1);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
-		}
-
-		//tetrahedral
-		if (T0 != B0 && T1 == B1 && T2 == B2) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(T0);
-		}
-		if (T1 != B1 && T0 == B0 && T2 == B2) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(T1);
-		}
-		if (T2 != B2 && T0 == B0 && T1 == B1) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
-			singleCell.emplace_back(T2);
-		}
-
-		//triangle
-		if (T0 == B0 && T1 == B1 && T2 == B2) {
-			singleCell.emplace_back(B0);
-			singleCell.emplace_back(B1);
-			singleCell.emplace_back(B2);
+	int generateCell(const std::vector < std::vector < size_t > >& cells,
+		const std::unordered_map < size_t, std::vector < size_t > >& vertMap,
+		global_type::Mesh& prismTopo
+	)
+	{
+		size_t bottomVer[3];
+		size_t topVer[3];
+		std::vector < size_t > prismCell(6);
+		std::vector < size_t > pyramidCell(5);
+		std::vector < size_t > tetraCell(4);
+		for (size_t i = 0; i < cells.size(); ++i) {
+			//prism
+			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() > 1) {
+				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
+					for (int k = 0; k < 3; ++k) {
+						prismCell[k] = vertMap.at(cells[i][k])[j];
+					}
+					for (int k = 3; k < 6; ++k) {
+						prismCell[k] = vertMap.at(cells[i][k - 3])[j + 1];
+					}
+					prismTopo.vecCells.emplace_back(prismCell);
+				}
+			}
+			//pyramid
+			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() > 1) {
+				for (int j = 0; j < vertMap.at(cells[i][1]).size() - 1; ++j) {
+					pyramidCell[0] = vertMap.at(cells[i][2])[j];
+					pyramidCell[1] = vertMap.at(cells[i][1])[j];
+					pyramidCell[2] = vertMap.at(cells[i][1])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][2])[j + 1];
+					pyramidCell[4] = vertMap.at(cells[i][0])[0];
+					prismTopo.vecCells.emplace_back(pyramidCell);
+				}
+			}
+			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() > 1) {
+				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
+					pyramidCell[0] = vertMap.at(cells[i][0])[j];
+					pyramidCell[1] = vertMap.at(cells[i][2])[j];
+					pyramidCell[2] = vertMap.at(cells[i][2])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][0])[j + 1];
+					pyramidCell[4] = vertMap.at(cells[i][1])[0];
+					prismTopo.vecCells.emplace_back(pyramidCell);
+				}
+			}
+			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() == 1) {
+				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
+					pyramidCell[0] = vertMap.at(cells[i][1])[j];
+					pyramidCell[1] = vertMap.at(cells[i][0])[j];
+					pyramidCell[2] = vertMap.at(cells[i][0])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][1])[j + 1];
+					pyramidCell[4] = vertMap.at(cells[i][2])[0];
+					prismTopo.vecCells.emplace_back(pyramidCell);
+				}
+			}
+			//tetrahedron
+			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() == 1) {
+				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
+					tetraCell[0] = vertMap.at(cells[i][0])[j];
+					tetraCell[1] = vertMap.at(cells[i][1])[0];
+					tetraCell[2] = vertMap.at(cells[i][2])[0];
+					tetraCell[3] = vertMap.at(cells[i][0])[j + 1];
+					prismTopo.vecCells.emplace_back(tetraCell);
+				}
+			}
+			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() == 1) {
+				for (int j = 0; j < vertMap.at(cells[i][1]).size() - 1; ++j) {
+					tetraCell[0] = vertMap.at(cells[i][1])[j];
+					tetraCell[1] = vertMap.at(cells[i][2])[0];
+					tetraCell[2] = vertMap.at(cells[i][0])[0];
+					tetraCell[3] = vertMap.at(cells[i][1])[j + 1];
+					prismTopo.vecCells.emplace_back(tetraCell);
+				}
+			}
+			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() > 1) {
+				for (int j = 0; j < vertMap.at(cells[i][2]).size() - 1; ++j) {
+					tetraCell[0] = vertMap.at(cells[i][2])[j];
+					tetraCell[1] = vertMap.at(cells[i][0])[0];
+					tetraCell[2] = vertMap.at(cells[i][1])[0];
+					tetraCell[3] = vertMap.at(cells[i][2])[j + 1];
+					prismTopo.vecCells.emplace_back(tetraCell);
+				}
+			}
 		}
 		return 1;
 	}
@@ -84,98 +125,16 @@ namespace march_vertex {
 		global_type::Mesh& prismTopo
 	)
 	{
-		double eps = 1;
-		double layerNum = param.layerNumber;
+		double eps = 0.3;
+		int layerNum = param.layerNumber;
 
 		prismTopo.vecVertices = mesh.vecVertices;
 		prismTopo.matVertices = mesh.matVertices;
+		prismTopo.vecCells = mesh.vecCells;
+		prismTopo.matCells = mesh.matCells;
 		std::unordered_map < size_t, std::vector < size_t > > vertMap;
-		for (size_t i = 0; i < mesh.vecVertices.size(); ++i) {
-			vertMap[i].emplace_back(i);
-		}
-		std::vector < size_t > singleTri;
-		size_t B0, T0, B1, T1, B2, T2;
-		std::vector < double > b0(3), t0(3), b1(3), t1(3), b2(3), t2(3);
-		for (size_t i = 0; i < mesh.vecCells.size(); ++i) {
-			singleTri = mesh.vecCells[i];
-			for (int j = 0; j < layerNum; ++j) {
-				
-			}
-			//if (!vertMap.count(singleTri[0])) {
-			//	b0 = mesh.vecVertices[singleTri[0]];
-			//	if (noNormal(meshNormal.verticesNormal[singleTri[0]]))
-			//	{
-			//		B0 = singleTri[0];
-			//		T0 = B0;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[0], singleTri[0]));
-			//	}
-			//	else
-			//	{
-			//		t0[0] = b0[0] + eps * meshNormal.verticesNormalizedNormal[singleTri[0]][0];
-			//		t0[1] = b0[1] + eps * meshNormal.verticesNormalizedNormal[singleTri[0]][1];
-			//		t0[2] = b0[2] + eps * meshNormal.verticesNormalizedNormal[singleTri[0]][2];
-			//		prismTopo.vecVertices.emplace_back(t0);
-			//		B0 = singleTri[0];
-			//		T0 = prismTopo.vecVertices.size() - 1;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[0], prismTopo.vecVertices.size() - 1));
-			//	}
-			//}
-			//else {
-			//	B0 = singleTri[0];
-			//	T0 = vertMap[singleTri[0]];
-			//}
-
-			//if (!vertMap.count(singleTri[1])) {
-			//	b1 = mesh.vecVertices[singleTri[1]];
-			//	if (noNormal(meshNormal.verticesNormal[singleTri[1]]))
-			//	{
-			//		B1 = singleTri[1];
-			//		T1 = B1;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[1], singleTri[1]));
-			//	}
-			//	else
-			//	{
-			//		t1[0] = b1[0] + eps * meshNormal.verticesNormalizedNormal[singleTri[1]][0];
-			//		t1[1] = b1[1] + eps * meshNormal.verticesNormalizedNormal[singleTri[1]][1];
-			//		t1[2] = b1[2] + eps * meshNormal.verticesNormalizedNormal[singleTri[1]][2];
-			//		prismTopo.vecVertices.emplace_back(t1);
-			//		B1 = singleTri[1];
-			//		T1 = prismTopo.vecVertices.size() - 1;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[1], prismTopo.vecVertices.size() - 1));
-			//	}
-			//}
-			//else {
-			//	B1 = singleTri[1];
-			//	T1 = vertMap[singleTri[1]];
-			//}
-
-			//if (!vertMap.count(singleTri[2])) {
-			//	b2 = mesh.vecVertices[singleTri[2]];
-			//	if (noNormal(meshNormal.verticesNormal[singleTri[2]]))
-			//	{
-			//		B2 = singleTri[2];
-			//		T2 = B2;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[2], singleTri[2]));
-			//	}
-			//	else
-			//	{
-			//		t2[0] = b2[0] + eps * meshNormal.verticesNormalizedNormal[singleTri[2]][0];
-			//		t2[1] = b2[1] + eps * meshNormal.verticesNormalizedNormal[singleTri[2]][1];
-			//		t2[2] = b2[2] + eps * meshNormal.verticesNormalizedNormal[singleTri[2]][2];
-			//		prismTopo.vecVertices.emplace_back(t2);
-			//		B2 = singleTri[2];
-			//		T2 = prismTopo.vecVertices.size() - 1;
-			//		vertMap.insert(std::pair < size_t, size_t >(singleTri[2], prismTopo.vecVertices.size() - 1));
-			//	}
-			//}
-			//else {
-			//	B2 = singleTri[2];
-			//	T2 = vertMap[singleTri[2]];
-			//}
-			//generateCell(B0, T0, B1, T1, B2, T2, singleCell);
-			//prismTopo.vecCells.emplace_back(singleCell);
-		}
-
+		generateVertices(mesh.vecVertices, meshNormal.verticesNormalizedNormal, layerNum, eps, prismTopo, vertMap);
+		generateCell(mesh.vecCells, vertMap, prismTopo);
 		//Test
 		mesh_io::saveVTK("data/wanxiangjie_prism.vtk", prismTopo.vecVertices, prismTopo.vecCells);
 		return 1;

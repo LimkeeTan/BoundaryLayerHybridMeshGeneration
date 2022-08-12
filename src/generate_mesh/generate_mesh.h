@@ -11,7 +11,7 @@ namespace generate_mesh {
 		GenerateMesh(const global_type::Parameter& param,
 			global_type::Mesh* mesh) :
 			m_param(param),
-			m_mesh(mesh) 
+			m_mesh(mesh)
 		{}
 
 		~GenerateMesh() {}
