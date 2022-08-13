@@ -12,9 +12,22 @@ namespace generate_mesh {
 			return 0;
 		}
 		if (!march_vertex::computeMarchVertex(*m_mesh, m_meshNormal, m_param, m_prismTopo)) {
-			std::cout << "failed to compute marching vertices" << std::endl;
+			std::cout << "failed to generate prism topo" << std::endl;
 			return 0;
 		}
+		std::vector < Eigen::Vector3d > holePoints;
+		std::vector<size_t> intersectCell;
+		if (!tetgen::tetrahedralization(holePoints, m_mesh->vecVertices, m_mesh->vecCells, m_tetTopo.matVertices, m_tetTopo.matCells, intersectCell)) {
+			std::cout << "falied to generate tetrahedron topo" << std::endl;
+			return 0;
+		}
+
+		if (!mesh_utils::convertMatToVec(m_tetTopo)) {
+			std::cout << "failed to convert vec to mat" << std::endl;
+			return 0;
+		}
+		//Test
+		mesh_io::saveVTK("data/wanxiangjie_tet.vtk", m_tetTopo.vecVertices, m_tetTopo.vecCells);
 		return 1;
 	}
 }

@@ -3,6 +3,7 @@
 #include "../mesh_utils.h"
 #include "vertex_normal.h"
 #include "march_vertex.h"
+#include "tetrahedralize.h"
 
 namespace generate_mesh {
 	class GenerateMesh
@@ -27,6 +28,7 @@ namespace generate_mesh {
 		global_type::Mesh* m_mesh;
 		global_type::MeshNormal m_meshNormal;
 		global_type::Mesh m_prismTopo;
+		global_type::Mesh m_tetTopo;
 	};
 }
 

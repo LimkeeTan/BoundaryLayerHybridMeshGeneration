@@ -13,6 +13,8 @@ namespace mesh_utils {
 
 	int convertVecToMat(global_type::Mesh& mesh);
 
+	int convertMatToVec(global_type::Mesh& mesh);
+
 	int computeTriNormal(const global_type::Mesh& mesh,
 		global_type::MeshNormal& meshNormal
 	);

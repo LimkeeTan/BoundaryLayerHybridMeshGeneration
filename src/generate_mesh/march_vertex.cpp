@@ -135,6 +135,7 @@ namespace march_vertex {
 		std::unordered_map < size_t, std::vector < size_t > > vertMap;
 		generateVertices(mesh.vecVertices, meshNormal.verticesNormalizedNormal, layerNum, eps, prismTopo, vertMap);
 		generateCell(mesh.vecCells, vertMap, prismTopo);
+
 		//Test
 		mesh_io::saveVTK("data/wanxiangjie_prism.vtk", prismTopo.vecVertices, prismTopo.vecCells);
 		return 1;

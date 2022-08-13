@@ -52,6 +52,27 @@ namespace mesh_utils {
 		return 1;
 	}
 
+	int convertMatToVec(global_type::Mesh& mesh)
+	{
+		if (mesh.matVertices.rows() == 0) return 1;
+		if (mesh.matCells.rows() == 0) return 1;
+		int vertexNum = mesh.matVertices.rows();
+		int cellNum = mesh.matCells.rows();
+		mesh.vecVertices.resize(vertexNum);
+		mesh.vecCells.resize(cellNum);
+		for (size_t i = 0; i < mesh.matVertices.rows(); ++i) {
+			mesh.vecVertices[i].emplace_back(mesh.matVertices(i, 0));
+			mesh.vecVertices[i].emplace_back(mesh.matVertices(i, 1));
+			mesh.vecVertices[i].emplace_back(mesh.matVertices(i, 2));
+		}
+		for (size_t i = 0; i < mesh.matCells.rows(); ++i) {
+			for (int j = 0; j < mesh.matCells.cols(); ++j) {
+				mesh.vecCells[i].emplace_back(mesh.matCells(i, j));
+			}
+		}
+		return 1;
+	}
+
 	int computeTriNormal(const global_type::Mesh& mesh,
 		global_type::MeshNormal& meshNormal
 	)
