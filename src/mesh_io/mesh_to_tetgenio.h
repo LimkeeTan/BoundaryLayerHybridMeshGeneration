@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vector>
 #include <Eigen/Dense>
 #include "../generate_mesh/tetgen.h"

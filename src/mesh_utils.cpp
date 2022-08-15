@@ -112,4 +112,16 @@ namespace mesh_utils {
 		}
 		return 1;
 	}
+
+	int constructVerCellMap(const std::vector < std::vector < size_t > >& cell,
+		std::unordered_map < size_t, std::vector < size_t > >& verCellMap
+	)
+	{
+		for (size_t i = 0; i < cell.size(); ++i) {
+			for (int j = 0; j < cell[i].size(); ++j) {
+				verCellMap[cell[i][j]].emplace_back(i);
+			}
+		}
+		return 1;
+	}
 }

@@ -4,6 +4,7 @@
 #include "vertex_normal.h"
 #include "march_vertex.h"
 #include "tetrahedralize.h"
+#include "topo_hybrid.h"
 
 namespace generate_mesh {
 	class GenerateMesh

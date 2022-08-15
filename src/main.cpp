@@ -6,11 +6,11 @@ int main(int argc, char** argv)
 {
 	global_type::Mesh mesh;
 	std::string inputMeshFile = "data/wanxiangjie.obj";
-	std::string outputMeshFile = "data/wanxiangjie.vtk";
+	std::string outputMeshFile = "data/wanxiangjie_hybrid.vtk";
 	global_type::Parameter param;
 	param.layerNumber = 3;
-	param.firstHeight = 0.1;
-	param.increaseRatio = 1;
+	param.initHeight = 0.1;
+	param.increaseRatio = 1.2;
 
 	if (!mesh_io::readTriOBJ(inputMeshFile, mesh.vecVertices, mesh.vecCells)) {
 		std::cout << "failed to read obj mesh" << std::endl;

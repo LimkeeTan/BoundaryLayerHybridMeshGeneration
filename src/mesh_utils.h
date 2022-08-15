@@ -22,6 +22,10 @@ namespace mesh_utils {
 	int constructVerTriMap(const Eigen::MatrixXi& tri,
 		std::unordered_map < size_t, std::vector < size_t > >& verTriMap
 	);
+
+	int constructVerCellMap(const std::vector < std::vector < size_t > >& cell,
+		std::unordered_map < size_t, std::vector < size_t > >& verCellMap
+	);
 }
 
 #endif

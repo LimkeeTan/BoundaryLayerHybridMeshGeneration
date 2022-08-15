@@ -21,8 +21,17 @@ namespace global_type {
 
 	struct Parameter {
 		int layerNumber;
-		double firstHeight;
+		double initHeight;
 		double increaseRatio;
+		std::vector < double > eps;
+	};
+
+	const int tetFaces[4][3] = 
+	{
+		{ 1, 0, 2 },
+		{ 3, 2, 0 },
+		{ 1, 2, 3 },
+		{ 0, 1, 3 }
 	};
 }
 

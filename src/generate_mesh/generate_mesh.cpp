@@ -11,7 +11,8 @@ namespace generate_mesh {
 			std::cout << "failed to compute vertex normal" << std::endl;
 			return 0;
 		}
-		if (!march_vertex::computeMarchVertex(*m_mesh, m_meshNormal, m_param, m_prismTopo)) {
+		std::unordered_map < size_t, std::vector < size_t > > vertMap;
+		if (!march_vertex::computeMarchVertex(*m_mesh, m_meshNormal, m_param, m_prismTopo, vertMap)) {
 			std::cout << "failed to generate prism topo" << std::endl;
 			return 0;
 		}
@@ -21,9 +22,12 @@ namespace generate_mesh {
 			std::cout << "falied to generate tetrahedron topo" << std::endl;
 			return 0;
 		}
-
 		if (!mesh_utils::convertMatToVec(m_tetTopo)) {
 			std::cout << "failed to convert vec to mat" << std::endl;
+			return 0;
+		}
+		if (!topo_hybrid::topoOperation(m_tetTopo, m_meshNormal, m_prismTopo, vertMap, m_param, *m_mesh)) {
+			std::cout << "failed to apply topo operation" << std::endl;
 			return 0;
 		}
 		//Test

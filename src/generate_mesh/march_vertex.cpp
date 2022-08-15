@@ -10,7 +10,7 @@ namespace march_vertex {
 	int generateVertices(const std::vector < std::vector < double > >& vertices,
 		const std::vector < std::vector < double > >& normalizedNorm,
 		const int& layerNum,
-		const double& eps,
+		const std::vector < double >& eps,
 		global_type::Mesh& prismTopo,
 		std::unordered_map < size_t, std::vector < size_t > >& vertMap
 	)
@@ -23,7 +23,7 @@ namespace march_vertex {
 			if (noNormal(normalizedNorm[i])) continue;
 			for (int j = 0; j < layerNum; ++j) {
 				for (int k = 0; k < 3; ++k) {
-					marchVertex[k] = initVertex[k] + eps * normalizedNorm[i][k];
+					marchVertex[k] = initVertex[k] + eps[j] * normalizedNorm[i][k];
 				}
 				prismTopo.vecVertices.emplace_back(marchVertex);
 				vertMap[i].emplace_back(prismTopo.vecVertices.size() - 1);
@@ -121,18 +121,30 @@ namespace march_vertex {
 
 	int computeMarchVertex(const global_type::Mesh& mesh,
 		const global_type::MeshNormal& meshNormal,
-		const global_type::Parameter& param,
-		global_type::Mesh& prismTopo
+		global_type::Parameter& param,
+		global_type::Mesh& prismTopo,
+		std::unordered_map < size_t, std::vector < size_t > >& vertMap
 	)
 	{
-		double eps = 0.3;
+		double initHeight = param.initHeight;
+		double increaseRatio = param.increaseRatio;
 		int layerNum = param.layerNumber;
+		std::vector < double > eps(layerNum);
+		double sum = 0;
+		for (int i = 0; i < layerNum; ++i) {
+			sum += std::pow(increaseRatio, i);
+		}
+		eps[0] = initHeight / sum;
+		for (int i = 1; i < layerNum; ++i) {
+			eps[i] = eps[0] * std::pow(increaseRatio, i);
+		}
+		param.eps = eps;
 
 		prismTopo.vecVertices = mesh.vecVertices;
 		prismTopo.matVertices = mesh.matVertices;
 		prismTopo.vecCells = mesh.vecCells;
 		prismTopo.matCells = mesh.matCells;
-		std::unordered_map < size_t, std::vector < size_t > > vertMap;
+		
 		generateVertices(mesh.vecVertices, meshNormal.verticesNormalizedNormal, layerNum, eps, prismTopo, vertMap);
 		generateCell(mesh.vecCells, vertMap, prismTopo);
 
