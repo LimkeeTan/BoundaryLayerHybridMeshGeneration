@@ -82,7 +82,6 @@ namespace mesh_utils {
 		Eigen::Vector3d v2;
 		Eigen::Vector3d e0;
 		Eigen::Vector3d e1;
-		Eigen::Vector3d normal;
 		Eigen::Vector3d normalizedNormal;
 		std::vector < double > singleNormal(3);
 		for (size_t i = 0; i < mesh.matCells.rows(); ++i) {
@@ -91,8 +90,7 @@ namespace mesh_utils {
 			v2 = mesh.matVertices.row(mesh.matCells(i, 2));
 			e0 = v1 - v0;
 			e1 = v2 - v0;
-			normal = e1.cross(e0);
-			normalizedNormal = normal.normalized();
+			normalizedNormal = e1.cross(e0).normalized();
 			for (int j = 0; j < 3; ++j) {
 				singleNormal[j] = normalizedNormal[j];
 			}
