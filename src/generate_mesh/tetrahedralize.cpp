@@ -147,7 +147,7 @@ int tetgen::tetrahedralization(const std::vector<Eigen::Vector3d>& hole_points,
         F(i, 1) = tri_c[i][1];
         F(i, 2) = tri_c[i][2];
     }
-    std::string param = "pq1.1Y";
+    std::string param = "pq1.2Y";
     tetrahedralize(hole_points, V, F, param, TV, TT, intersectF);
     return 1;
 }
