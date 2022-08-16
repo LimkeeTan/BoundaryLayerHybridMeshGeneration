@@ -27,7 +27,6 @@ namespace march_vertex {
 				}
 				prismTopo.vecVertices.emplace_back(marchVertex);
 				vertMap[i].emplace_back(prismTopo.vecVertices.size() - 1);
-				initVertex = marchVertex;
 			}
 		}
 		return 1;
@@ -135,8 +134,11 @@ namespace march_vertex {
 			sum += std::pow(increaseRatio, i);
 		}
 		eps[0] = initHeight / sum;
+		double addEps = eps[0];
 		for (int i = 1; i < layerNum; ++i) {
 			eps[i] = eps[0] * std::pow(increaseRatio, i);
+			eps[i] += addEps;
+			addEps = eps[i];
 		}
 		param.eps = eps;
 
