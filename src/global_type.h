@@ -20,9 +20,9 @@ namespace global_type {
 	};
 
 	struct Parameter {
-		int layerNumber;
-		double initHeight;
-		double increaseRatio;
+		int layerNumber{};
+		double initHeight{};
+		double increaseRatio{};
 		std::vector < double > eps;
 	};
 
@@ -33,6 +33,8 @@ namespace global_type {
 		{ 1, 2, 3 },
 		{ 0, 1, 3 }
 	};
+
+	const int tetVerOppositeFace[4] = { 2,1,3,0 };
 }
 
 #endif
