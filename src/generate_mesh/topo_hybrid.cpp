@@ -15,8 +15,8 @@ namespace topo_hybrid {
 	int validTetCheck(const global_type::Mesh& tetTopo,
 		const global_type::MeshNormal& meshNormal,
 		const std::unordered_map < size_t, std::vector < size_t > >& vertMap,
-		global_type::Mesh& prismTopo,
-		global_type::Parameter& param
+		const global_type::Parameter& param,
+		global_type::Mesh& prismTopo
 	)
 	{
 		std::unordered_map < size_t, std::vector < size_t > > verCellMap;
@@ -29,6 +29,14 @@ namespace topo_hybrid {
 		int triFace[3]{};
 		int idx;
 		double distance;
+		double projection;
+		double height = param.initHeight;
+		std::vector < double > eps(param.layerNumber);
+		double sum = 0;
+		double addEps;
+		for (int i = 0; i < param.layerNumber; ++i) {
+			sum += std::pow(param.increaseRatio, i);
+		}
 		for (size_t i = 0; i < vertMap.size(); ++i) {
 			if (vertMap.at(i).size() == 1) {
 				continue;
@@ -59,10 +67,29 @@ namespace topo_hybrid {
 					}
 				}
 				computeTriNormal(threeVer, triNormal);
-				distance = (triNormal * (queryVer - threeVer[0]).dot(triNormal)).norm();
-				while (distance < 0.1) {
-					std::cout << "flatten tet, should reduce marching distance" << std::endl;
+				projection = (queryVer - threeVer[0]).dot(triNormal);
+				distance = (triNormal * projection).norm();
+				while (distance < 0.4 || projection < 0) {
+					std::cout << "invalid tet, should reduce marching distance" << std::endl;
 					std::cout << relateCell[j] << " " << distance << std::endl;
+					height *= 0.8;
+					eps[0] = height / sum;
+					addEps = eps[0];
+					for (int k = 1; k < param.layerNumber; ++k) {
+						eps[k] = eps[0] * std::pow(param.increaseRatio, k);
+						eps[k] += addEps;
+						addEps = eps[k];
+					}
+					for (int k = 1; k < vertMap.at(i).size(); ++k) {
+						for (int p = 0; p < 3; ++p) {
+							prismTopo.vecVertices[vertMap.at(i)[k]][p] += eps[k - 1] * meshNormal.verticesNormalizedNormal[i][p];
+						}
+					}
+					for (int k = 0; k < 3; ++k) {
+						queryVer[k] = prismTopo.vecVertices[vertMap.at(i).back()][k];
+					}
+					projection = (queryVer - threeVer[0]).dot(triNormal);
+					distance = (triNormal * projection).norm();
 				}
 			}
 		}
@@ -78,7 +105,7 @@ namespace topo_hybrid {
 	)
 	{
 		// valid check
-		if (!validTetCheck(tetTopo, meshNormal, vertMap, prismTopo, param)) {
+		if (!validTetCheck(tetTopo, meshNormal, vertMap, param, prismTopo)) {
 			std::cout << "failed to check tet" << std::endl;
 			return 0;
 		}
