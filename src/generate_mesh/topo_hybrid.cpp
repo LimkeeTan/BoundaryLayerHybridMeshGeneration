@@ -72,9 +72,15 @@ namespace topo_hybrid {
 				projection = (queryVer - threeVer[0]).dot(triNormal);
 				distance = (triNormal * projection).norm();
 				while (distance < 0.1 || projection < 0) {
-					if ((queryVer - triVer).norm() < 0.01) break;
+					if ((queryVer - triVer).norm() < 0.001 && projection < 0) {
+						std::cout << "inverse tet, tet generation failed" << std::endl;
+						return 0;
+					}
+					if ((queryVer - triVer).norm() < 0.001 && projection > 0) {
+						break;
+					}
 					std::cout << "invalid tet, should reduce marching distance" << std::endl;
-					std::cout << relateCell[j] << " " << distance << std::endl;
+					std::cout << distance << std::endl;
 					height *= 0.8;
 					eps[0] = height / sum;
 					addEps = eps[0];
