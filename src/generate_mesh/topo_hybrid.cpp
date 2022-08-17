@@ -25,6 +25,7 @@ namespace topo_hybrid {
 		std::vector < size_t > singleCell;
 		Eigen::Vector3d triNormal;
 		Eigen::Vector3d queryVer;
+		Eigen::Vector3d triVer;
 		std::vector < Eigen::Vector3d > threeVer(3);
 		int triFace[3]{};
 		int idx;
@@ -43,6 +44,7 @@ namespace topo_hybrid {
 			}
 			for (int j = 0; j < 3; ++j) {
 				queryVer[j] = prismTopo.vecVertices[vertMap.at(i).back()][j];
+				triVer[j] = prismTopo.vecVertices[i][j];
 			}
 			relateCell = verCellMap[i];
 			for (int j = 0; j < relateCell.size(); ++j) {
@@ -69,7 +71,8 @@ namespace topo_hybrid {
 				computeTriNormal(threeVer, triNormal);
 				projection = (queryVer - threeVer[0]).dot(triNormal);
 				distance = (triNormal * projection).norm();
-				while (distance < 0.4 || projection < 0) {
+				while (distance < 0.1 || projection < 0) {
+					if ((queryVer - triVer).norm() < 0.01) break;
 					std::cout << "invalid tet, should reduce marching distance" << std::endl;
 					std::cout << relateCell[j] << " " << distance << std::endl;
 					height *= 0.8;
@@ -82,7 +85,8 @@ namespace topo_hybrid {
 					}
 					for (int k = 1; k < vertMap.at(i).size(); ++k) {
 						for (int p = 0; p < 3; ++p) {
-							prismTopo.vecVertices[vertMap.at(i)[k]][p] += eps[k - 1] * meshNormal.verticesNormalizedNormal[i][p];
+							prismTopo.vecVertices[vertMap.at(i)[k]][p] = prismTopo.vecVertices[vertMap.at(i)[0]][p] + 
+								eps[k - 1] * meshNormal.verticesNormalizedNormal[i][p];
 						}
 					}
 					for (int k = 0; k < 3; ++k) {
