@@ -179,7 +179,7 @@ namespace vertex_normal {
 			if (!solver.solve())
 			{
 				std::cout << "no solution\n";
-				for (int j = 0; j < x.size(); ++j) {
+				for (int j = 0; j < 3; ++j) {
 					meshNormal.verticesNormal[i].emplace_back(0);
 					meshNormal.verticesNormalizedNormal[i].emplace_back(0);
 				}
@@ -187,7 +187,7 @@ namespace vertex_normal {
 			else {
 				x = solver.getSolution();
 				normalizedNormal = x.normalized();
-				for (int j = 0; j < x.size(); ++j) {
+				for (int j = 0; j < 3; ++j) {
 					meshNormal.verticesNormal[i].emplace_back(x[j]);
 					meshNormal.verticesNormalizedNormal[i].emplace_back(normalizedNormal[j]);
 				}
