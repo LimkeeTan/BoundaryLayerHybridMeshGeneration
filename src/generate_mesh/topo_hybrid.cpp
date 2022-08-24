@@ -29,7 +29,6 @@ namespace topo_hybrid {
 		std::vector < Eigen::Vector3d > threeVer(3);
 		int triFace[3]{};
 		int idx;
-		double distance;
 		double projection;
 		double height = param.initHeight;
 		std::vector < double > eps(param.layerNumber);
@@ -70,17 +69,12 @@ namespace topo_hybrid {
 				}
 				computeTriNormal(threeVer, triNormal);
 				projection = (queryVer - threeVer[0]).dot(triNormal);
-				distance = (triNormal * projection).norm();
-				while (distance < 0.1 || projection < 0) {
-					if ((queryVer - triVer).norm() < 0.001 && projection < 0) {
+				while (projection < 0) {
+					if ((queryVer - triVer).norm() < 0.0001 && projection < 0) {
 						std::cout << "inverse tet, tet generation failed" << std::endl;
 						return 0;
 					}
-					if ((queryVer - triVer).norm() < 0.001 && projection > 0) {
-						break;
-					}
-					std::cout << "invalid tet, should reduce marching distance" << std::endl;
-					std::cout << distance << std::endl;
+					std::cout << "inverse tet, should reduce marching distance" << std::endl;
 					height *= 0.8;
 					eps[0] = height / sum;
 					addEps = eps[0];
@@ -99,7 +93,6 @@ namespace topo_hybrid {
 						queryVer[k] = prismTopo.vecVertices[vertMap.at(i).back()][k];
 					}
 					projection = (queryVer - threeVer[0]).dot(triNormal);
-					distance = (triNormal * projection).norm();
 				}
 			}
 		}
