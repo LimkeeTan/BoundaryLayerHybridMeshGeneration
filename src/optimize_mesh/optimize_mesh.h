@@ -6,7 +6,11 @@ namespace optimize_mesh {
 	class OptimizeMesh
 	{
 	public:
-		OptimizeMesh(global_type::Mesh* mesh) :m_mesh(mesh) {}
+		OptimizeMesh(const global_type::Parameter& param,
+			global_type::Mesh* mesh) :
+			m_mesh(mesh),
+			m_param(param)
+		{}
 
 		~OptimizeMesh() {}
 
@@ -15,6 +19,8 @@ namespace optimize_mesh {
 		int optimize();
 	private:
 		global_type::Mesh* m_mesh;
+		global_type::Parameter m_param;
+		int constructWholeTet(Eigen::MatrixXd& tetVer, Eigen::MatrixXi& tetCell);
 	};
 }
 
