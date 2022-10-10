@@ -5,11 +5,11 @@
 int main(int argc, char** argv)
 {
 	global_type::Mesh mesh;
-	std::string inputMeshFile = "data/wanxiangjie.obj";
-	std::string outputMeshFile = "data/wanxiangjie_hybrid.vtk";
+	std::string inputMeshFile = argv[1];
+	std::string outputMeshFile = argv[2];
 	global_type::Parameter param;
 	param.layerNumber = 3;
-	param.initHeight = 0.1;
+	param.initHeight = 0.2;
 	param.increaseRatio = 1.2;
 
 	if (!mesh_io::readTriOBJ(inputMeshFile, mesh.vecVertices, mesh.vecCells)) {
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	optimize_mesh::OptimizeMesh optimizeMesh(&mesh);
+	optimize_mesh::OptimizeMesh optimizeMesh(param, &mesh);
 	if (!optimizeMesh.optimize()) {
 		std::cout << "failed to optimize mesh" << std::endl;
 		return 0;

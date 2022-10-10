@@ -26,7 +26,7 @@ namespace global_type {
 		std::vector < double > eps;
 	};
 
-	const int tetFaces[4][3] = 
+	const int tetFaces[4][3] =
 	{
 		{ 0, 1, 2 },
 		{ 2, 3, 0 },
@@ -35,6 +35,24 @@ namespace global_type {
 	};
 
 	const int tetVerOppositeFace[4] = { 2,1,3,0 };
+
+	const int prismTetCells[6][4] =
+	{
+		{1, 3, 2, 0},
+		{2, 4, 0, 1},
+		{0, 4, 1, 2},
+		{5, 0, 4, 3},
+		{3, 1, 5, 4},
+		{4, 2, 3, 5}
+	};
+
+	const int pyramidTetCells[4][4] =
+	{
+		{1, 4, 3, 0},
+		{1, 3, 4, 2},
+		{2, 4, 0, 1},
+		{4, 2, 0, 3}
+	};
 }
 
 #endif
