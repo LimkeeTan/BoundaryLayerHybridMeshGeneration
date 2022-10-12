@@ -1,4 +1,5 @@
 #include "mesh_utils.h"
+#include "mesh_io/mesh_io.h"
 
 namespace mesh_utils {
 	bool isInVector(const std::vector < size_t >& vec,
@@ -120,6 +121,67 @@ namespace mesh_utils {
 				verCellMap[cell[i][j]].emplace_back(i);
 			}
 		}
+		return 1;
+	}
+
+	double a_jacobian(const Eigen::Vector3d& v0,
+		const Eigen::Vector3d& v1,
+		const Eigen::Vector3d& v2,
+		const Eigen::Vector3d& v3
+	)
+	{
+		Eigen::Matrix3d Jacobian;
+		Jacobian.col(0) = (v1 - v0) * .5;
+		Jacobian.col(1) = (v2 - v0) * .5;
+		Jacobian.col(2) = (v3 - v0) * .5;
+
+		return Jacobian.determinant();
+	}
+
+	int tetJacobian(const global_type::Mesh& tetMesh, const std::string& filename)
+	{
+		Eigen::Vector3d c0;
+		Eigen::Vector3d c1;
+		Eigen::Vector3d c2;
+		Eigen::Vector3d c3;
+		int inverse = 0;
+		std::vector < int > inverseTet;
+		std::vector < std::vector < size_t > > inverseCell;
+		for (size_t i = 0; i < tetMesh.matCells.rows(); ++i) {
+			c0 = tetMesh.matVertices.row(tetMesh.matCells(i, 0));
+			c1 = tetMesh.matVertices.row(tetMesh.matCells(i, 1));
+			c2 = tetMesh.matVertices.row(tetMesh.matCells(i, 2));
+			c3 = tetMesh.matVertices.row(tetMesh.matCells(i, 3));
+
+			double jacobianVal = a_jacobian(c0, c1, c2, c3);
+			if (jacobianVal < 0) {
+				++inverse;
+				inverseTet.emplace_back(i);
+			}
+		}
+		if (inverse > 0) {
+			std::cout << "flipped elements: " << inverse << std::endl;
+			for (int i = 0; i < inverseTet.size(); ++i) {
+				std::cout << inverseTet[i] << " " << std::endl;
+				inverseCell.emplace_back(tetMesh.vecCells[inverseTet[i]]);
+			}
+		}
+		mesh_io::saveVTK(filename, tetMesh.vecVertices, inverseCell);
+		return 1;
+	}
+
+	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename)
+	{
+		global_type::Mesh prism;
+		global_type::Mesh tet;
+		tet.vecVertices = hybridMesh.vecVertices;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 4) {
+				tet.vecCells.emplace_back(hybridMesh.vecCells[i]);
+			}
+		}
+		convertVecToMat(tet);
+		tetJacobian(tet, filename);
 		return 1;
 	}
 }

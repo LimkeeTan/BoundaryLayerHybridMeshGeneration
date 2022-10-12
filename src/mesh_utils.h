@@ -26,6 +26,10 @@ namespace mesh_utils {
 	int constructVerCellMap(const std::vector < std::vector < size_t > >& cell,
 		std::unordered_map < size_t, std::vector < size_t > >& verCellMap
 	);
+
+	int tetJacobian(const global_type::Mesh& tetMesh, const std::string& filename);
+
+	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename);
 }
 
 #endif

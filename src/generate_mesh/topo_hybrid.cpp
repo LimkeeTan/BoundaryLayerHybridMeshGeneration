@@ -70,7 +70,7 @@ namespace topo_hybrid {
 				computeTriNormal(threeVer, triNormal);
 				projection = (queryVer - threeVer[0]).dot(triNormal);
 				while (projection < 0) {
-					if ((queryVer - triVer).norm() < 0.0001 && projection < 0) {
+					if ((queryVer - triVer).norm() < 1e-5 && projection < 0) {
 						std::cout << "inverse tet, tet generation failed" << std::endl;
 						return 0;
 					}
@@ -108,10 +108,10 @@ namespace topo_hybrid {
 	)
 	{
 		// valid check
-		if (!validTetCheck(tetTopo, meshNormal, vertMap, param, prismTopo)) {
-			std::cout << "failed to check tet" << std::endl;
-			return 0;
-		}
+		//if (!validTetCheck(tetTopo, meshNormal, vertMap, param, prismTopo)) {
+		//	std::cout << "failed to check tet" << std::endl;
+		//	return 0;
+		//}
 
 		// combine to obtain hybridMesh
 		size_t triVerNum = hybridMesh.vecVertices.size();
@@ -129,6 +129,7 @@ namespace topo_hybrid {
 			}
 			hybridMesh.vecCells.emplace_back(singleTet);
 		}
+		mesh_utils::Jacobian(hybridMesh, "generate_inverse.vtk");
 		return 1;
 	}
 }

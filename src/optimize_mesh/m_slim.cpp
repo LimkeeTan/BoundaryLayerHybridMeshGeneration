@@ -191,12 +191,29 @@ namespace slim_opt {
 
 		return energy;
 	}
-	
+
+	double compute_soft_const_energy(const Eigen::MatrixXd& V,
+		const Eigen::MatrixXi& F,
+		const Eigen::MatrixXd& V_o,
+		SLIMData& s
+	)
+	{
+		double e = 0;
+		for (int i = 0; i < s.b.rows(); i++)
+		{
+			e += s.soft_const_p * (s.bc.row(i) - V_o.row(s.b(i))).squaredNorm();
+		}
+		return e;
+	}
+
 	double compute_total_energy(SLIMData& s, Eigen::MatrixXd& V_new)
 	{
 		compute_jacobians(s, V_new);
 		double e = compute_energy_with_jacobians(s, s.V, s.F, s.Ji, V_new, s.M);
 		s.energy_quality = e;
+		double esoft = compute_soft_const_energy(s.V, s.F, V_new, s);
+		s.energy_soft = esoft;
+		e += esoft;
 		return e;
 	}
 
@@ -209,17 +226,18 @@ namespace slim_opt {
 		data.V = tetVer;
 		data.F = tetCell;
 		data.V_o = initTetVer;
-		
+
 		data.v_num = tetVer.rows();
 		data.f_num = tetCell.rows();
-		data.slim_energy = CONFORMAL;
+		data.slim_energy = SYMMETRIC_DIRICHLET;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
 		data.M.setConstant(data.weight_opt);
 		data.mesh_area = data.M.sum();
 		data.exp_factor = 1.0;
-		
-		data.soft_const_p = data.lambda_s;
+
+		data.soft_const_p = 1e5;
+
 		data.proximal_p = 0.0001;
 
 		pre_calc(data);
@@ -651,6 +669,21 @@ namespace slim_opt {
 		s.rhs = (At * s.WGL_M.asDiagonal() * f_rhs + s.proximal_p * uv_flat);
 	}
 
+	int add_soft_constraints(SLIMData& s, Eigen::SparseMatrix<double>& L)
+	{
+		int v_n = s.v_num;
+		for (int d = 0; d < s.dim; d++)
+		{
+			for (int i = 0; i < s.b.rows(); i++)
+			{
+				int v_idx = s.b(i);
+				s.rhs(d * v_n + v_idx) += s.soft_const_p * s.bc(i, d); // rhs
+				L.coeffRef(d * v_n + v_idx, d * v_n + v_idx) += s.soft_const_p; // diagonal of matrix
+			}
+		}
+		return 1;
+	}
+
 	void build_linear_system(SLIMData& s, Eigen::SparseMatrix<double>& L)
 	{
 		// formula (35) in paper
@@ -676,6 +709,7 @@ namespace slim_opt {
 		//{
 		//	add_soft_constraints(s, L);
 		//}
+		add_soft_constraints(s, L);
 		L.makeCompressed();
 	}
 
@@ -745,23 +779,53 @@ namespace slim_opt {
 		return data.V_o;
 	}
 
-	int slimOptimization(Eigen::MatrixXd& tetVer,
-		Eigen::MatrixXi& tetCell,
+	int getBoundaryVerConstraints(const global_type::Mesh& tetMesh,
+		SLIMData& data
+	)
+	{
+		data.b.resize(tetMesh.boundaryVerNums, 1);
+		data.bc.resize(tetMesh.boundaryVerNums, 3);
+		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
+			data.b(i) = i;
+		}
+		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
+			data.bc.row(i) = tetMesh.matVertices.row(i);
+		}
+		return 1;
+	}
+
+	int getSoftConstraints(const global_type::Mesh& tetMesh,
+		SLIMData& data
+	)
+	{
+		getBoundaryVerConstraints(tetMesh, data);
+		return 1;
+	}
+
+	int slimOptimization(global_type::Mesh& tetMesh,
 		Eigen::MatrixXd& initTetVer
 	)
 	{
+		//igl::SLIMData data;
 		SLIMData data;
 		double energyQuality = 0;
 		double energySoft = 0;
-		int iter = 5;
+		int iter = 100;
+		getSoftConstraints(tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
+		Eigen::MatrixXd tetVer = tetMesh.matVertices;
+		Eigen::MatrixXi tetCell = tetMesh.matCells;
+		//double soft_const_p = 1e5;
+		//igl::slim_precompute(tetVer, tetCell, initTetVer, data, igl::MappingEnergyType::CONFORMAL, data.b, data.bc, soft_const_p);
+		//std::cout << "Solve..." << std::endl;
+		//data.V_o = igl::slim_solve(data, iter);
+		//initTetVer = data.V_o;
+		//tetMesh.matVertices = data.V_o;
 		precompute(tetVer, tetCell, initTetVer, data);
 		std::cout << "Solve..." << std::endl;
-		for (int i = 0; i < 5; ++i) {
-			data.V_o = slimSolve(data, iter);
-			initTetVer = data.V_o;
-			tetVer = data.V_o;
-		}
+		data.V_o = slimSolve(data, iter);
+		initTetVer = data.V_o;
+		tetMesh.matVertices = data.V_o;
 		return 1;
 	}
 }

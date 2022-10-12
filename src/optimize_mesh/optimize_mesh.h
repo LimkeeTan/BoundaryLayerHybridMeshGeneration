@@ -20,7 +20,7 @@ namespace optimize_mesh {
 	private:
 		global_type::Mesh* m_mesh;
 		global_type::Parameter m_param;
-		int constructWholeTet(Eigen::MatrixXd& tetVer, Eigen::MatrixXi& tetCell);
+		int constructWholeTet(global_type::Mesh& tetMesh);
 	};
 }
 

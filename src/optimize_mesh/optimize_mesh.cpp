@@ -3,14 +3,12 @@
 #include "m_slim.h"
 
 namespace optimize_mesh {
-	int OptimizeMesh::constructWholeTet(Eigen::MatrixXd& tetVer,
-		Eigen::MatrixXi& tetCell
-	)
+	int OptimizeMesh::constructWholeTet(global_type::Mesh& tetMesh)
 	{
-		tetVer.resize(m_mesh->vecVertices.size(), 3);
+		tetMesh.matVertices.resize(m_mesh->vecVertices.size(), 3);
 		for (size_t i = 0; i < m_mesh->vecVertices.size(); ++i) {
 			for (int j = 0; j < 3; ++j) {
-				tetVer(i, j) = m_mesh->vecVertices[i][j];
+				tetMesh.matVertices(i, j) = m_mesh->vecVertices[i][j];
 			}
 		}
 		std::vector < std::vector < size_t > > tmpTetCell;
@@ -40,10 +38,10 @@ namespace optimize_mesh {
 				tmpTetCell.emplace_back(singleTetCell);
 			}
 		}
-		tetCell.resize(tmpTetCell.size(), 4);
-		for (size_t i = 0; i < tetCell.rows(); ++i) {
+		tetMesh.matCells.resize(tmpTetCell.size(), 4);
+		for (size_t i = 0; i < tetMesh.matCells.rows(); ++i) {
 			for (int j = 0; j < 4; ++j) {
-				tetCell(i, j) = tmpTetCell[i][j];
+				tetMesh.matCells(i, j) = tmpTetCell[i][j];
 			}
 		}
 		return 1;
@@ -51,18 +49,19 @@ namespace optimize_mesh {
 
 	int OptimizeMesh::optimize()
 	{
-		Eigen::MatrixXd tetVer;
-		Eigen::MatrixXi tetCell;
+		global_type::Mesh tetMesh;
 		Eigen::MatrixXd initTetVer;
-		constructWholeTet(tetVer, tetCell);
-		initTetVer = tetVer;
+		constructWholeTet(tetMesh);
+		initTetVer = tetMesh.matVertices;
+		tetMesh.boundaryVerNums = m_mesh->boundaryVerNums;
 		std::cout << "mesh optimization..." << std::endl;
-		slim_opt::slimOptimization(tetVer, tetCell, initTetVer);
-		for (size_t i = 0; i < tetVer.rows(); ++i) {
-			m_mesh->vecVertices[i][0] = tetVer(i, 0);
-			m_mesh->vecVertices[i][1] = tetVer(i, 1);
-			m_mesh->vecVertices[i][2] = tetVer(i, 2);
+		slim_opt::slimOptimization(tetMesh, initTetVer);
+		for (size_t i = 0; i < tetMesh.matVertices.rows(); ++i) {
+			m_mesh->vecVertices[i][0] = tetMesh.matVertices(i, 0);
+			m_mesh->vecVertices[i][1] = tetMesh.matVertices(i, 1);
+			m_mesh->vecVertices[i][2] = tetMesh.matVertices(i, 2);
 		}
+		mesh_utils::Jacobian(*m_mesh, "opt_inverse.vtk");
 		return 1;
 	}
 }

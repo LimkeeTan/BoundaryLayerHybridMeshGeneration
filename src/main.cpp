@@ -8,8 +8,8 @@ int main(int argc, char** argv)
 	std::string inputMeshFile = argv[1];
 	std::string outputMeshFile = argv[2];
 	global_type::Parameter param;
-	param.layerNumber = 3;
-	param.initHeight = 0.2;
+	param.layerNumber = 1;
+	param.initHeight = 1.5;
 	param.increaseRatio = 1.2;
 
 	if (!mesh_io::readTriOBJ(inputMeshFile, mesh.vecVertices, mesh.vecCells)) {

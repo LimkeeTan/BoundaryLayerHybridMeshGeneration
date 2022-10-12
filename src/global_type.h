@@ -11,6 +11,7 @@ namespace global_type {
 		std::vector < std::vector < size_t > > vecCells;
 		Eigen::MatrixXd matVertices;
 		Eigen::MatrixXi matCells;
+		size_t boundaryVerNums;
 	};
 
 	struct MeshNormal {

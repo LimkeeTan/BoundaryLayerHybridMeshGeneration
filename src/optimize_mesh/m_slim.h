@@ -3,6 +3,7 @@
 #include "Eigen/Eigen"
 #include "igl/grad.h"
 #include "igl/slim.h"
+#include "../global_type.h"
 namespace slim_opt {
 	enum SLIM_ENERGY
 	{
@@ -59,8 +60,7 @@ namespace slim_opt {
 		int dim;
 	};
 
-	int slimOptimization(Eigen::MatrixXd& tetVer,
-		Eigen::MatrixXi& tetCell,
+	int slimOptimization(global_type::Mesh& tetMesh,
 		Eigen::MatrixXd& initTetVer
 	);
 }

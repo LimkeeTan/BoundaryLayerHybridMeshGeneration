@@ -7,6 +7,7 @@ namespace generate_mesh {
 			std::cout << "failed to convert vec to mat" << std::endl;
 			return 0;
 		}
+		m_mesh->boundaryVerNums = m_mesh->vecVertices.size();
 		if (!vertex_normal::computeVertexNormal(*m_mesh, m_meshNormal)) {
 			std::cout << "failed to compute vertex normal" << std::endl;
 			return 0;
@@ -31,7 +32,7 @@ namespace generate_mesh {
 			return 0;
 		}
 		//Test
-		mesh_io::saveVTK("data/wanxiangjie_tet.vtk", m_tetTopo.vecVertices, m_tetTopo.vecCells);
+		mesh_io::saveVTK("data/wanxiangjie_hybrid.vtk", m_mesh->vecVertices, m_mesh->vecCells);
 		return 1;
 	}
 }
