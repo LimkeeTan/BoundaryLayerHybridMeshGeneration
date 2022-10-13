@@ -20,7 +20,10 @@ namespace optimize_mesh {
 	private:
 		global_type::Mesh* m_mesh;
 		global_type::Parameter m_param;
-		int constructWholeTet(global_type::Mesh& tetMesh);
+		int constructWholeTet(global_type::Mesh& tetMesh, 
+			std::vector < Eigen::MatrixXd >& targetPrismTet
+		);
+		const Eigen::Vector3d& computeTriNorm(const size_t& i) const;
 	};
 }
 
