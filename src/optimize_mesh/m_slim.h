@@ -61,7 +61,8 @@ namespace slim_opt {
 	};
 
 	int slimOptimization(global_type::Mesh& tetMesh,
-		Eigen::MatrixXd& initTetVer
+		Eigen::MatrixXd& initTetVer,
+		std::vector < Eigen::MatrixXd >& targetPrismTet
 	);
 }
 

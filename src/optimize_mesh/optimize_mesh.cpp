@@ -3,24 +3,70 @@
 #include "m_slim.h"
 
 namespace optimize_mesh {
-	const Eigen::Vector3d& OptimizeMesh::computeTriNorm(const size_t& idx) const
+	//const Eigen::Vector3d& OptimizeMesh::computeTriNorm(const size_t& idx) const
+	//{
+	//	Eigen::Vector3d v0;
+	//	Eigen::Vector3d v1;
+	//	Eigen::Vector3d v2;
+	//	Eigen::Vector3d e0;
+	//	Eigen::Vector3d e1;
+	//	for (int i = 0; i < 3; ++i) {
+	//		v0(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][0]][i];
+	//		v1(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][1]][i];
+	//		v2(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][2]][i];
+	//	}
+	//	e0 = v1 - v0;
+	//	e1 = v2 - v0;
+	//	return e1.cross(e0).normalized();
+	//}
+
+	int OptimizeMesh::constructTargetTet(std::vector < Eigen::MatrixXd >& target)
 	{
-		Eigen::Vector3d v0;
-		Eigen::Vector3d v1;
-		Eigen::Vector3d v2;
-		Eigen::Vector3d e0;
-		Eigen::Vector3d e1;
-		for (int i = 0; i < 3; ++i) {
-			v0(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][0]][i];
-			v1(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][1]][i];
-			v2(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][2]][i];
+		Eigen::MatrixXd singleTet;
+		Eigen::MatrixXd tagTet;
+		std::vector < size_t > singleTetCell(4);
+		singleTet.resize(4, 3);
+		tagTet.resize(0, 0);
+		for (size_t i = 0; i < m_mesh->vecCells.size(); ++i) {
+			//prism
+			if (m_mesh->vecCells[i].size() == 6) {
+				for (int j = 0; j < 6; ++j) {
+					for (int k = 0; k < 4; ++k) {
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismTetCells[j][k]];
+						singleTet(k, 0) = m_mesh->vecVertices[singleTetCell[k]][0];
+						singleTet(k, 1) = m_mesh->vecVertices[singleTetCell[k]][1];
+						singleTet(k, 2) = m_mesh->vecVertices[singleTetCell[k]][2];
+					}
+					target.emplace_back(singleTet);
+				}
+			}
+			//pyramid
+			if (m_mesh->vecCells[i].size() == 5) {
+				for (int j = 0; j < 4; ++j) {
+					for (int k = 0; k < 4; ++k) {
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::pyramidTetCells[j][k]];
+						singleTet(k, 0) = m_mesh->vecVertices[singleTetCell[k]][0];
+						singleTet(k, 1) = m_mesh->vecVertices[singleTetCell[k]][1];
+						singleTet(k, 2) = m_mesh->vecVertices[singleTetCell[k]][2];
+					}
+					target.emplace_back(singleTet);
+				}
+			}
+			//tet
+			if (m_mesh->vecCells[i].size() == 4) {
+				//for (int j = 0; j < 4; ++j) {
+				//	singleTetCell[j] = m_mesh->vecCells[i][j];
+				//	singleTet(j, 0) = m_mesh->vecVertices[singleTetCell[j]][0];
+				//	singleTet(j, 1) = m_mesh->vecVertices[singleTetCell[j]][1];
+				//	singleTet(j, 2) = m_mesh->vecVertices[singleTetCell[j]][2];
+				//}
+				target.emplace_back(tagTet);
+			}
 		}
-		e0 = v1 - v0;
-		e1 = v2 - v0;
-		return e1.cross(e0).normalized();
+		return 1;
 	}
 
-	int OptimizeMesh::constructWholeTet(global_type::Mesh& tetMesh, 
+	int OptimizeMesh::constructWholeTet(global_type::Mesh& tetMesh,
 		std::vector < Eigen::MatrixXd >& targetPrismTet
 	)
 	{
@@ -38,7 +84,6 @@ namespace optimize_mesh {
 			if (m_mesh->vecCells[i].size() == 3) {
 				++triangleNums;
 			}
-
 			//prism
 			if (m_mesh->vecCells[i].size() == 6) {
 				for (int j = 0; j < 6; ++j) {
@@ -69,14 +114,8 @@ namespace optimize_mesh {
 				tetMesh.matCells(i, j) = tmpTetCell[i][j];
 			}
 		}
-		targetPrismTet.resize(tetMesh.matCells.rows());
-		for (size_t i = 0; i < targetPrismTet.size(); ++i) {
-			targetPrismTet[i].resize(4, 3);
-		}
-		Eigen::Vector3d triangleNorm;
-		for (size_t i = 0; i < triangleNums; ++i) {
-			triangleNorm = computeTriNorm(i);
-		}
+		targetPrismTet.reserve(tetMesh.matCells.rows());
+		constructTargetTet(targetPrismTet);
 		return 1;
 	}
 
@@ -89,7 +128,7 @@ namespace optimize_mesh {
 		initTetVer = tetMesh.matVertices;
 		tetMesh.boundaryVerNums = m_mesh->boundaryVerNums;
 		std::cout << "mesh optimization..." << std::endl;
-		slim_opt::slimOptimization(tetMesh, initTetVer);
+		slim_opt::slimOptimization(tetMesh, initTetVer, targetPrismTet);
 		for (size_t i = 0; i < tetMesh.matVertices.rows(); ++i) {
 			m_mesh->vecVertices[i][0] = tetMesh.matVertices(i, 0);
 			m_mesh->vecVertices[i][1] = tetMesh.matVertices(i, 1);

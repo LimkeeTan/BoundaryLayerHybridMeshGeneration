@@ -1,14 +1,115 @@
 #include "m_slim.h"
 
 namespace slim_opt {
-	int pre_calc(SLIMData& s)
+	int grad_tet_ref(const Eigen::MatrixXd& V,
+		const Eigen::MatrixXi& T,
+		const std::vector < Eigen::MatrixXd >& RF,
+		Eigen::SparseMatrix < double >& G
+	)
+	{
+		using namespace Eigen;
+		int n = V.rows();
+		int m = T.rows();
+		MatrixXi F(4 * m, 3);
+		for (int i = 0; i < m; i++) {
+			F.row(0 * m + i) << T(i, 0), T(i, 1), T(i, 2);
+			F.row(1 * m + i) << T(i, 0), T(i, 2), T(i, 3);
+			F.row(2 * m + i) << T(i, 0), T(i, 3), T(i, 1);
+			F.row(3 * m + i) << T(i, 1), T(i, 3), T(i, 2);
+		}
+		VectorXd vol; 
+		igl::volume(V, T, vol);
+		VectorXd A(F.rows());
+		MatrixXd N(F.rows(), 3);
+		const int tet_faces[4][3] = {
+			{ 0, 1, 2 },
+			{ 0, 2, 3 },
+			{ 0, 3, 1 },
+			{ 1, 3, 2 }
+		};
+		double coeff = sqrt(2);
+		double coeff_2 = sqrt(3);
+		for (int i = 0; i < m; i++) {
+			if (RF[i].rows() == 4) {
+				Vector3d e01, e02, e03;
+				e01 = RF[i].row(0) - RF[i].row(1);
+				e02 = RF[i].row(0) - RF[i].row(2);
+				e03 = RF[i].row(0) - RF[i].row(3);
+				double volume_i = std::abs(e01.cross(e02).dot(e03)) / 6;
+				double scale_i = vol(i) / volume_i;
+				scale_i = std::cbrt(scale_i);
+
+				for (int k = 0; k < 4; k++) {
+					Vector3d e0, e1;
+					e0 = (RF[i].row(tet_faces[k][0]) - RF[i].row(tet_faces[k][1])) * scale_i;
+					e1 = (RF[i].row(tet_faces[k][0]) - RF[i].row(tet_faces[k][2])) * scale_i;
+
+					double area = e0.cross(e1).norm() / 2;
+					A(k * m + i) = area;
+					e0.normalize(); e1.normalize();
+					Vector3d normal = e0.cross(e1);
+					N.row(k * m + i) = normal;
+					N.row(k * m + i) /= N.row(k * m + i).norm();
+				}
+			}
+			else {
+				double currVol = std::cbrt(3 * vol(i));
+
+				N.row(i) << 0, 0, 1;
+				double a_0 = coeff * currVol;
+				A(i) = (pow(a_0, 2) * coeff_2) / 4;
+
+				N.row(m + i) << 0.8165, -0.4714, -0.3333;
+				double a_1 = coeff * currVol;
+				A(m + i) = (pow(a_1, 2) * coeff_2) / 4;
+
+				N.row(2 * m + i) << 0, 0.9428, -0.3333;
+				double a_2 = coeff * currVol;
+				A(2 * m + i) = (pow(a_2, 2) * coeff_2) / 4;
+
+				N.row(3 * m + i) << -0.8165, -0.4714, -0.3333;
+				double a_3 = coeff * currVol;
+				A(3 * m + i) = (pow(a_3, 2) * coeff_2) / 4;
+			}
+		}
+		std::vector<Triplet<double> > G_t;
+		for (int i = 0; i < 4 * m; i++) {
+			int T_j; // j indexes : repmat([T(:,4);T(:,2);T(:,3);T(:,1)],3,1)
+			switch (i / m) {
+			case 0:
+				T_j = 3;
+				break;
+			case 1:
+				T_j = 1;
+				break;
+			case 2:
+				T_j = 2;
+				break;
+			case 3:
+				T_j = 0;
+				break;
+			}
+			int i_idx = i % m;
+			int j_idx = T(i_idx, T_j);
+
+			double val_before_n = A(i) / (3 * vol(i_idx));
+			G_t.push_back(Triplet<double>(0 * m + i_idx, j_idx, val_before_n * N(i, 0)));
+			G_t.push_back(Triplet<double>(1 * m + i_idx, j_idx, val_before_n * N(i, 1)));
+			G_t.push_back(Triplet<double>(2 * m + i_idx, j_idx, val_before_n * N(i, 2)));
+		}
+		G.resize(3 * m, n);
+		G.setFromTriplets(G_t.begin(), G_t.end());
+		return 1;
+	}
+
+	int pre_calc(SLIMData& s, std::vector < Eigen::MatrixXd >& targetPrismTet)
 	{
 		if (!s.has_pre_calc) {
 			s.v_n = s.v_num;
 			s.f_n = s.f_num;
 			s.dim = 3;
 			Eigen::SparseMatrix<double> G;
-			igl::grad(s.V, s.F, G, s.mesh_improvement_3d);
+			grad_tet_ref(s.V, s.F, targetPrismTet, G);
 			s.Dx = G.block(0, 0, s.F.rows(), s.V.rows());
 			s.Dy = G.block(s.F.rows(), 0, s.F.rows(), s.V.rows());
 			s.Dz = G.block(2 * s.F.rows(), 0, s.F.rows(), s.V.rows());
@@ -220,7 +321,8 @@ namespace slim_opt {
 	int precompute(Eigen::MatrixXd& tetVer,
 		Eigen::MatrixXi& tetCell,
 		Eigen::MatrixXd& initTetVer,
-		SLIMData& data
+		SLIMData& data,
+		std::vector < Eigen::MatrixXd >& targetPrismTet
 	)
 	{
 		data.V = tetVer;
@@ -229,7 +331,7 @@ namespace slim_opt {
 
 		data.v_num = tetVer.rows();
 		data.f_num = tetCell.rows();
-		data.slim_energy = SYMMETRIC_DIRICHLET;
+		data.slim_energy = CONFORMAL;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
 		data.M.setConstant(data.weight_opt);
@@ -240,7 +342,7 @@ namespace slim_opt {
 
 		data.proximal_p = 0.0001;
 
-		pre_calc(data);
+		pre_calc(data, targetPrismTet);
 		data.energy = compute_total_energy(data, data.V_o) / data.mesh_area;
 		std::cout << "total energy: " << data.energy << std::endl;
 		std::cout << "ED: " << data.energy_quality / data.mesh_area << std::endl;
@@ -803,25 +905,20 @@ namespace slim_opt {
 	}
 
 	int slimOptimization(global_type::Mesh& tetMesh,
-		Eigen::MatrixXd& initTetVer
+		Eigen::MatrixXd& initTetVer,
+		std::vector < Eigen::MatrixXd >& targetPrismTet
 	)
 	{
 		//igl::SLIMData data;
 		SLIMData data;
 		double energyQuality = 0;
 		double energySoft = 0;
-		int iter = 100;
+		int iter = 30;
 		getSoftConstraints(tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
 		Eigen::MatrixXd tetVer = tetMesh.matVertices;
 		Eigen::MatrixXi tetCell = tetMesh.matCells;
-		//double soft_const_p = 1e5;
-		//igl::slim_precompute(tetVer, tetCell, initTetVer, data, igl::MappingEnergyType::CONFORMAL, data.b, data.bc, soft_const_p);
-		//std::cout << "Solve..." << std::endl;
-		//data.V_o = igl::slim_solve(data, iter);
-		//initTetVer = data.V_o;
-		//tetMesh.matVertices = data.V_o;
-		precompute(tetVer, tetCell, initTetVer, data);
+		precompute(tetVer, tetCell, initTetVer, data, targetPrismTet);
 		std::cout << "Solve..." << std::endl;
 		data.V_o = slimSolve(data, iter);
 		initTetVer = data.V_o;
