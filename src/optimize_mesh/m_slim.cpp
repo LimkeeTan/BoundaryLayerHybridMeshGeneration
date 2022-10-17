@@ -331,7 +331,7 @@ namespace slim_opt {
 
 		data.v_num = tetVer.rows();
 		data.f_num = tetCell.rows();
-		data.slim_energy = SYMMETRIC_DIRICHLET;
+		data.slim_energy = CONFORMAL;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
 		data.M.setConstant(data.weight_opt);
