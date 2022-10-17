@@ -37,7 +37,7 @@ namespace global_type {
 
 	const int tetVerOppositeFace[4] = { 2,1,3,0 };
 
-	const int prismTetCells[6][4] =
+	const int prismSixTetCells[6][4] =
 	{
 		{1, 3, 2, 0},
 		{2, 4, 0, 1},
@@ -45,6 +45,13 @@ namespace global_type {
 		{5, 0, 4, 3},
 		{3, 1, 5, 4},
 		{4, 2, 3, 5}
+	};
+
+	const int prismThreeTetCells[3][4] =
+	{
+		{0, 1, 2, 3},
+		{2, 3, 4, 5},
+		{1, 2, 3, 4}
 	};
 
 	const int pyramidTetCells[4][4] =
