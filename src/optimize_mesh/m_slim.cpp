@@ -17,7 +17,7 @@ namespace slim_opt {
 			F.row(2 * m + i) << T(i, 0), T(i, 3), T(i, 1);
 			F.row(3 * m + i) << T(i, 1), T(i, 3), T(i, 2);
 		}
-		VectorXd vol; 
+		VectorXd vol;
 		igl::volume(V, T, vol);
 		VectorXd A(F.rows());
 		MatrixXd N(F.rows(), 3);
@@ -331,7 +331,7 @@ namespace slim_opt {
 
 		data.v_num = tetVer.rows();
 		data.f_num = tetCell.rows();
-		data.slim_energy = CONFORMAL;
+		data.slim_energy = SYMMETRIC_DIRICHLET;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
 		data.M.setConstant(data.weight_opt);
@@ -913,7 +913,7 @@ namespace slim_opt {
 		SLIMData data;
 		double energyQuality = 0;
 		double energySoft = 0;
-		int iter = 30;
+		int iter = 50;
 		getSoftConstraints(tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
 		Eigen::MatrixXd tetVer = tetMesh.matVertices;

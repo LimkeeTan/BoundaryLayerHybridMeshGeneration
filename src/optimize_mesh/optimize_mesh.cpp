@@ -30,9 +30,9 @@ namespace optimize_mesh {
 		for (size_t i = 0; i < m_mesh->vecCells.size(); ++i) {
 			//prism
 			if (m_mesh->vecCells[i].size() == 6) {
-				for (int j = 0; j < 6; ++j) {
+				for (int j = 0; j < 3; ++j) {
 					for (int k = 0; k < 4; ++k) {
-						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismTetCells[j][k]];
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismThreeTetCells[j][k]];
 						singleTet(k, 0) = m_mesh->vecVertices[singleTetCell[k]][0];
 						singleTet(k, 1) = m_mesh->vecVertices[singleTetCell[k]][1];
 						singleTet(k, 2) = m_mesh->vecVertices[singleTetCell[k]][2];
@@ -54,12 +54,6 @@ namespace optimize_mesh {
 			}
 			//tet
 			if (m_mesh->vecCells[i].size() == 4) {
-				//for (int j = 0; j < 4; ++j) {
-				//	singleTetCell[j] = m_mesh->vecCells[i][j];
-				//	singleTet(j, 0) = m_mesh->vecVertices[singleTetCell[j]][0];
-				//	singleTet(j, 1) = m_mesh->vecVertices[singleTetCell[j]][1];
-				//	singleTet(j, 2) = m_mesh->vecVertices[singleTetCell[j]][2];
-				//}
 				target.emplace_back(tagTet);
 			}
 		}
@@ -78,17 +72,12 @@ namespace optimize_mesh {
 		}
 		std::vector < std::vector < size_t > > tmpTetCell;
 		std::vector < size_t > singleTetCell(4);
-		size_t triangleNums = 0;
 		for (size_t i = 0; i < m_mesh->vecCells.size(); ++i) {
-			//triangle
-			if (m_mesh->vecCells[i].size() == 3) {
-				++triangleNums;
-			}
 			//prism
 			if (m_mesh->vecCells[i].size() == 6) {
-				for (int j = 0; j < 6; ++j) {
+				for (int j = 0; j < 3; ++j) {
 					for (int k = 0; k < 4; ++k) {
-						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismTetCells[j][k]];
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismThreeTetCells[j][k]];
 					}
 					tmpTetCell.emplace_back(singleTetCell);
 				}
