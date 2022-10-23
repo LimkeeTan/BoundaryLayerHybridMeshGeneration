@@ -29,6 +29,8 @@ namespace mesh_utils {
 
 	int tetJacobian(const global_type::Mesh& tetMesh, const std::string& filename);
 
+	int prismJacobian(const global_type::Mesh & prismMesh, const std::string& filename);
+
 	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename);
 }
 

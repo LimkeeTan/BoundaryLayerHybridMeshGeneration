@@ -131,11 +131,23 @@ namespace mesh_utils {
 	)
 	{
 		Eigen::Matrix3d Jacobian;
+
 		Jacobian.col(0) = (v1 - v0) * .5;
 		Jacobian.col(1) = (v2 - v0) * .5;
 		Jacobian.col(2) = (v3 - v0) * .5;
 
-		return Jacobian.determinant();
+
+		double norm1 = Jacobian.col(0).norm();
+		double norm2 = Jacobian.col(1).norm();
+		double norm3 = Jacobian.col(2).norm();
+
+		double scaled_jacobian = Jacobian.determinant();
+		if (std::abs(norm1) < 1.e-7 || std::abs(norm2) < 1.e-7 || std::abs(norm3) < 1.e-7) {
+			std::cout << "Potential Bug, check!" << std::endl; //system("PAUSE");
+			return scaled_jacobian;
+		}
+		scaled_jacobian;
+		return scaled_jacobian;
 	}
 
 	int tetJacobian(const global_type::Mesh& tetMesh, const std::string& filename)
@@ -170,6 +182,40 @@ namespace mesh_utils {
 		return 1;
 	}
 
+	int prismJacobian(const global_type::Mesh& prismMesh, const std::string& filename)
+	{
+		Eigen::Vector3d c0;
+		Eigen::Vector3d c1;
+		Eigen::Vector3d c2;
+		Eigen::Vector3d c3;
+		int inverse = 0;
+		std::vector < int > inversePrism;
+		std::vector < std::vector < size_t > > inverseCell;
+		for (size_t i = 0; i < prismMesh.matCells.rows(); ++i) {
+			for (int j = 0; j < 6; ++j) {
+				c0 = prismMesh.matVertices.row(prismMesh.matCells(i, global_type::prismSixTetCells[j][0]));
+				c1 = prismMesh.matVertices.row(prismMesh.matCells(i, global_type::prismSixTetCells[j][1]));
+				c2 = prismMesh.matVertices.row(prismMesh.matCells(i, global_type::prismSixTetCells[j][2]));
+				c3 = prismMesh.matVertices.row(prismMesh.matCells(i, global_type::prismSixTetCells[j][3]));
+				double jacobianVal = a_jacobian(c0, c1, c2, c3);
+				if (jacobianVal < 0) {
+					++inverse;
+					inversePrism.emplace_back(i);
+					break;
+				}
+			}
+		}
+		if (inverse > 0) {
+			std::cout << "flipped elements: " << inverse << std::endl;
+			for (int i = 0; i < inversePrism.size(); ++i) {
+				std::cout << inversePrism[i] << " " << std::endl;
+				inverseCell.emplace_back(prismMesh.vecCells[inversePrism[i]]);
+			}
+		}
+		mesh_io::saveVTK(filename, prismMesh.vecVertices, inverseCell);
+		return 1;
+	}
+
 	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename)
 	{
 		global_type::Mesh prism;
@@ -181,7 +227,17 @@ namespace mesh_utils {
 			}
 		}
 		convertVecToMat(tet);
-		tetJacobian(tet, filename);
+		prism.vecVertices = hybridMesh.vecVertices;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 6) {
+				prism.vecCells.emplace_back(hybridMesh.vecCells[i]);
+			}
+		}
+		convertVecToMat(prism);
+		std::string tet_filename = filename.substr(0, filename.rfind("."));
+		std::string prism_filename = filename.substr(0, filename.rfind("."));
+		tetJacobian(tet, tet_filename + "_tet.vtk");
+		prismJacobian(prism, prism_filename + "_prism.vtk");
 		return 1;
 	}
 }
