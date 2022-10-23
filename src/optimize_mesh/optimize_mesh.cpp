@@ -30,9 +30,9 @@ namespace optimize_mesh {
 		for (size_t i = 0; i < m_mesh->vecCells.size(); ++i) {
 			//prism
 			if (m_mesh->vecCells[i].size() == 6) {
-				for (int j = 0; j < 3; ++j) {
+				for (int j = 0; j < 6; ++j) {
 					for (int k = 0; k < 4; ++k) {
-						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismThreeTetCells[j][k]];
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismSixTetCells[j][k]];
 						singleTet(k, 0) = m_mesh->vecVertices[singleTetCell[k]][0];
 						singleTet(k, 1) = m_mesh->vecVertices[singleTetCell[k]][1];
 						singleTet(k, 2) = m_mesh->vecVertices[singleTetCell[k]][2];
@@ -75,9 +75,9 @@ namespace optimize_mesh {
 		for (size_t i = 0; i < m_mesh->vecCells.size(); ++i) {
 			//prism
 			if (m_mesh->vecCells[i].size() == 6) {
-				for (int j = 0; j < 3; ++j) {
+				for (int j = 0; j < 6; ++j) {
 					for (int k = 0; k < 4; ++k) {
-						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismThreeTetCells[j][k]];
+						singleTetCell[k] = m_mesh->vecCells[i][global_type::prismSixTetCells[j][k]];
 					}
 					tmpTetCell.emplace_back(singleTetCell);
 				}
@@ -117,7 +117,7 @@ namespace optimize_mesh {
 		initTetVer = tetMesh.matVertices;
 		tetMesh.boundaryVerNums = m_mesh->boundaryVerNums;
 		std::cout << "mesh optimization..." << std::endl;
-		slim_opt::slimOptimization(tetMesh, initTetVer, targetPrismTet);
+		slim_opt::slimOptimization(m_param, *m_mesh, tetMesh, initTetVer, targetPrismTet);
 		for (size_t i = 0; i < tetMesh.matVertices.rows(); ++i) {
 			m_mesh->vecVertices[i][0] = tetMesh.matVertices(i, 0);
 			m_mesh->vecVertices[i][1] = tetMesh.matVertices(i, 1);

@@ -17,7 +17,7 @@ namespace slim_opt {
 			F.row(2 * m + i) << T(i, 0), T(i, 3), T(i, 1);
 			F.row(3 * m + i) << T(i, 1), T(i, 3), T(i, 2);
 		}
-		VectorXd vol;
+		VectorXd vol; 
 		igl::volume(V, T, vol);
 		VectorXd A(F.rows());
 		MatrixXd N(F.rows(), 3);
@@ -881,40 +881,196 @@ namespace slim_opt {
 		return data.V_o;
 	}
 
+	int constructSurfaceMesh(const std::vector < std::vector < double > >& vertices,
+		const std::vector < std::vector < size_t > >& faces,
+		pmp::SurfaceMesh& surfaceMesh
+	) 
+	{
+		for (size_t i = 0; i < vertices.size(); ++i) {
+			pmp::Point p(vertices[i][0], vertices[i][1], vertices[i][2]);
+			surfaceMesh.add_vertex(p);
+		}
+		std::vector < pmp::Vertex > vert(3);
+		for (size_t i = 0; i < faces.size(); ++i) {
+			pmp::Vertex v0(faces[i][0]);
+			pmp::Vertex v1(faces[i][1]);
+			pmp::Vertex v2(faces[i][2]);
+			vert[0] = v0;
+			vert[1] = v1;
+			vert[2] = v2;
+			surfaceMesh.add_face(vert);
+		}
+		return 1;
+	}
+
 	int getBoundaryVerConstraints(const global_type::Mesh& tetMesh,
-		SLIMData& data
+		SLIMData& data,
+		std::vector < Eigen::VectorXi >& bs,
+		std::vector < Eigen::MatrixXd >& bcs
 	)
 	{
-		data.b.resize(tetMesh.boundaryVerNums, 1);
-		data.bc.resize(tetMesh.boundaryVerNums, 3);
+		Eigen::VectorXi b;
+		Eigen::MatrixXd bc;
+		b.resize(tetMesh.boundaryVerNums, 1);
+		bc.resize(tetMesh.boundaryVerNums, 3);
 		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
-			data.b(i) = i;
+			b(i) = i;
 		}
 		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
-			data.bc.row(i) = tetMesh.matVertices.row(i);
+			bc.row(i) = tetMesh.matVertices.row(i);
 		}
+		bs.emplace_back(b);
+		bcs.emplace_back(bc);
 		return 1;
 	}
 
-	int getSoftConstraints(const global_type::Mesh& tetMesh,
-		SLIMData& data
+	int getLaplaceConstraints(const global_type::Mesh& hybridMesh,
+		const global_type::Mesh& tetMesh,
+		SLIMData& data,
+		std::vector < Eigen::VectorXi >& bs,
+		std::vector < Eigen::MatrixXd >& bcs
 	)
 	{
-		getBoundaryVerConstraints(tetMesh, data);
+		std::vector < std::vector < double > > copyVertices = hybridMesh.vecVertices;
+		std::vector < std::vector < size_t > > topTriangle;
+		std::vector < size_t > singleTriangle(3);
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 6) {
+				singleTriangle[0] = hybridMesh.vecCells[i][3];
+				singleTriangle[1] = hybridMesh.vecCells[i][4];
+				singleTriangle[2] = hybridMesh.vecCells[i][5];
+				topTriangle.emplace_back(singleTriangle);
+			}
+		}
+		pmp::SurfaceMesh mesh;
+		constructSurfaceMesh(copyVertices, topTriangle, mesh);
+		pmp::Smoothing smooth(mesh);
+		smooth.explicit_smoothing(2, false);
+		pmp::write(mesh, "data/smooth.obj");
+		std::unordered_map < size_t, std::vector < double > > v_map;
+		std::vector < double > secondVert(3);
+		for (size_t i = 0; i < topTriangle.size(); ++i) {
+			for (int j = 0; j < 3; ++j) {
+				if (!v_map.count(topTriangle[i][j])) {
+					secondVert[0] = mesh.position(pmp::Vertex(topTriangle[i][j]))[0];
+					secondVert[1] = mesh.position(pmp::Vertex(topTriangle[i][j]))[1];
+					secondVert[2] = mesh.position(pmp::Vertex(topTriangle[i][j]))[2];
+					v_map[topTriangle[i][j]] = secondVert;
+				}
+			}
+		}
+		Eigen::VectorXi b;
+		Eigen::MatrixXd bc;
+		b.resize(v_map.size(), 1);
+		bc.resize(v_map.size(), 3);
+		size_t count = 0;
+		std::unordered_map < size_t, std::vector < double > >::iterator it = v_map.begin();
+		while (it != v_map.end()) {
+			b(count) = it->first;
+			bc(count, 0) = it->second[0];
+			bc(count, 1) = it->second[1];
+			bc(count, 2) = it->second[2];
+			++count;
+			++it;
+		}
+		bs.emplace_back(b);
+		bcs.emplace_back(bc);
 		return 1;
 	}
 
-	int slimOptimization(global_type::Mesh& tetMesh,
+	int getHeightConstraints(const global_type::Parameter& param,
+		const global_type::Mesh& hybridMesh,
+		const global_type::Mesh& tetMesh,
+		SLIMData& data,
+		std::vector < Eigen::VectorXi >& bs,
+		std::vector < Eigen::MatrixXd >& bcs
+	)
+	{
+		Eigen::VectorXi b;
+		Eigen::MatrixXd bc;
+		Eigen::VectorXd topPoint;
+		Eigen::VectorXd bottomPoint;
+		topPoint.resize(3);
+		bottomPoint.resize(3);
+		Eigen::VectorXd normal;
+		std::unordered_map < size_t, Eigen::VectorXd > v_map;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 6) {
+				for (int j = 0; j < 3; ++j) {
+					if (!v_map.count(hybridMesh.vecCells[i][j + 3])) {
+						for (int k = 0; k < 3; ++k) {
+							topPoint(k) = hybridMesh.vecVertices[hybridMesh.vecCells[i][j + 3]][k];
+							bottomPoint(k) = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][k];
+						}
+						normal = (topPoint - bottomPoint).normalized();
+						normal *= param.idealHeight;
+						normal += bottomPoint;
+						v_map.insert(std::make_pair(hybridMesh.vecCells[i][j + 3], normal));
+					}
+				}
+			}
+		}
+		b.resize(v_map.size(), 1);
+		bc.resize(v_map.size(), 3);
+		size_t count = 0;
+		std::unordered_map < size_t, Eigen::VectorXd >::iterator it = v_map.begin();
+		while (it != v_map.end()) {
+			b(count) = it->first;
+			bc(count, 0) = it->second(0);
+			bc(count, 1) = it->second(1);
+			bc(count, 2) = it->second(2);
+			++count;
+			++it;
+		}
+		bs.emplace_back(b);
+		bcs.emplace_back(bc);
+		return 1;
+	}
+
+	int getSoftConstraints(const global_type::Parameter& param,
+		const global_type::Mesh& hybridMesh,
+		const global_type::Mesh& tetMesh,
+		SLIMData& data
+	)
+	{
+		std::vector < Eigen::VectorXi > bs;
+		std::vector < Eigen::MatrixXd > bcs;
+		getBoundaryVerConstraints(tetMesh, data, bs, bcs);
+		//getLaplaceConstraints(hybridMesh, tetMesh, data, bs, bcs);
+		getHeightConstraints(param, hybridMesh, tetMesh, data, bs, bcs);
+		size_t bNum = 0;
+		size_t bcNum = 0;
+		for (int i = 0; i < bs.size(); ++i) {
+			bNum += bs[i].rows();
+			bcNum += bcs[i].rows();
+		}
+		data.b.resize(bNum, 1);
+		data.bc.resize(bcNum, 3);
+		size_t idx = 0;
+		for (int i = 0; i < bs.size(); ++i) {
+			for (size_t j = 0; j < bs[i].rows(); ++j) {
+				data.b(idx) = bs[i](j);
+				data.bc.row(idx) = bcs[i].row(j);
+				++idx;
+			}
+		}
+		if (bNum != bcNum) abort();
+		if (idx != bNum) abort();
+		return 1;
+	}
+
+	int slimOptimization(const global_type::Parameter& param,
+		const global_type::Mesh& hybridMesh,
+		global_type::Mesh& tetMesh,
 		Eigen::MatrixXd& initTetVer,
 		std::vector < Eigen::MatrixXd >& targetPrismTet
 	)
 	{
-		//igl::SLIMData data;
 		SLIMData data;
 		double energyQuality = 0;
 		double energySoft = 0;
-		int iter = 50;
-		getSoftConstraints(tetMesh, data);
+		int iter = 30;
+		getSoftConstraints(param, hybridMesh, tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
 		Eigen::MatrixXd tetVer = tetMesh.matVertices;
 		Eigen::MatrixXi tetCell = tetMesh.matCells;

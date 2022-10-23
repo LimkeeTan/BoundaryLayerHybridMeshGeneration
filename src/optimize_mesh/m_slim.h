@@ -1,9 +1,12 @@
 #ifndef M_SLIM_H_
 #define M_SLIM_H_
+#include <pmp/algorithms/Smoothing.h>
+#include <pmp/io/io.h>
 #include "Eigen/Eigen"
 #include "igl/grad.h"
 #include "igl/slim.h"
 #include "../global_type.h"
+
 namespace slim_opt {
 	enum SLIM_ENERGY
 	{
@@ -60,7 +63,9 @@ namespace slim_opt {
 		int dim;
 	};
 
-	int slimOptimization(global_type::Mesh& tetMesh,
+	int slimOptimization(const global_type::Parameter& param,
+		const global_type::Mesh& hybridMesh,
+		global_type::Mesh& tetMesh,
 		Eigen::MatrixXd& initTetVer,
 		std::vector < Eigen::MatrixXd >& targetPrismTet
 	);
