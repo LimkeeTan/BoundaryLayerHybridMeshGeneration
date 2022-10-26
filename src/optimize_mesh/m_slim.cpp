@@ -906,29 +906,23 @@ namespace slim_opt {
 	int getBoundaryVerConstraints(const global_type::Mesh& tetMesh,
 		SLIMData& data,
 		std::vector < Eigen::VectorXi >& bs,
-		std::vector < Eigen::MatrixXd >& bcs
+		std::vector < Eigen::MatrixXd >& bcs,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map
 	)
 	{
-		Eigen::VectorXi b;
-		Eigen::MatrixXd bc;
-		b.resize(tetMesh.boundaryVerNums, 1);
-		bc.resize(tetMesh.boundaryVerNums, 3);
 		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
-			b(i) = i;
+			v_boundary_map.insert(std::make_pair(i, tetMesh.matVertices.row(i)));
 		}
-		for (size_t i = 0; i < tetMesh.boundaryVerNums; ++i) {
-			bc.row(i) = tetMesh.matVertices.row(i);
-		}
-		bs.emplace_back(b);
-		bcs.emplace_back(bc);
 		return 1;
 	}
 
 	int getLaplaceConstraints(const global_type::Mesh& hybridMesh,
 		const global_type::Mesh& tetMesh,
+		const std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map,
 		SLIMData& data,
 		std::vector < Eigen::VectorXi >& bs,
-		std::vector < Eigen::MatrixXd >& bcs
+		std::vector < Eigen::MatrixXd >& bcs,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_laplace_map
 	)
 	{
 		std::vector < std::vector < double > > copyVertices = hybridMesh.vecVertices;
@@ -945,85 +939,90 @@ namespace slim_opt {
 		pmp::SurfaceMesh mesh;
 		constructSurfaceMesh(copyVertices, topTriangle, mesh);
 		pmp::Smoothing smooth(mesh);
-		smooth.explicit_smoothing(2, false);
+		smooth.explicit_smoothing(1, false);
 		pmp::write(mesh, "data/smooth.obj");
-		std::unordered_map < size_t, std::vector < double > > v_map;
-		std::vector < double > secondVert(3);
+		Eigen::Vector3d secondVert;
 		for (size_t i = 0; i < topTriangle.size(); ++i) {
 			for (int j = 0; j < 3; ++j) {
-				if (!v_map.count(topTriangle[i][j])) {
-					secondVert[0] = mesh.position(pmp::Vertex(topTriangle[i][j]))[0];
-					secondVert[1] = mesh.position(pmp::Vertex(topTriangle[i][j]))[1];
-					secondVert[2] = mesh.position(pmp::Vertex(topTriangle[i][j]))[2];
-					v_map[topTriangle[i][j]] = secondVert;
+				if (!v_boundary_map.count(topTriangle[i][j]) && !v_laplace_map.count(topTriangle[i][j])) {
+					secondVert(0) = mesh.position(pmp::Vertex(topTriangle[i][j]))[0];
+					secondVert(1) = mesh.position(pmp::Vertex(topTriangle[i][j]))[1];
+					secondVert(2) = mesh.position(pmp::Vertex(topTriangle[i][j]))[2];
+					v_laplace_map.insert(std::make_pair(topTriangle[i][j], secondVert));
 				}
 			}
 		}
-		Eigen::VectorXi b;
-		Eigen::MatrixXd bc;
-		b.resize(v_map.size(), 1);
-		bc.resize(v_map.size(), 3);
-		size_t count = 0;
-		std::unordered_map < size_t, std::vector < double > >::iterator it = v_map.begin();
-		while (it != v_map.end()) {
-			b(count) = it->first;
-			bc(count, 0) = it->second[0];
-			bc(count, 1) = it->second[1];
-			bc(count, 2) = it->second[2];
-			++count;
-			++it;
-		}
-		bs.emplace_back(b);
-		bcs.emplace_back(bc);
 		return 1;
 	}
 
 	int getHeightConstraints(const global_type::Parameter& param,
 		const global_type::Mesh& hybridMesh,
 		const global_type::Mesh& tetMesh,
+		const std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map,
 		SLIMData& data,
 		std::vector < Eigen::VectorXi >& bs,
-		std::vector < Eigen::MatrixXd >& bcs
+		std::vector < Eigen::MatrixXd >& bcs,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_height_map
 	)
 	{
 		Eigen::VectorXi b;
 		Eigen::MatrixXd bc;
-		Eigen::VectorXd topPoint;
-		Eigen::VectorXd bottomPoint;
-		topPoint.resize(3);
-		bottomPoint.resize(3);
-		Eigen::VectorXd normal;
-		std::unordered_map < size_t, Eigen::VectorXd > v_map;
-		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+		Eigen::Vector3d topPoint;
+		Eigen::Vector3d bottomPoint;
+		Eigen::Vector3d normal;
+		for (size_t i = 0; i < hybridMesh.boundaryCellsNums; ++i) {
+			//prism
 			if (hybridMesh.vecCells[i].size() == 6) {
 				for (int j = 0; j < 3; ++j) {
-					if (!v_map.count(hybridMesh.vecCells[i][j + 3])) {
+					if (!v_boundary_map.count(hybridMesh.vecCells[i][j + 3]) && !v_height_map.count(hybridMesh.vecCells[i][j + 3])) {
 						for (int k = 0; k < 3; ++k) {
 							topPoint(k) = hybridMesh.vecVertices[hybridMesh.vecCells[i][j + 3]][k];
 							bottomPoint(k) = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][k];
 						}
 						normal = (topPoint - bottomPoint).normalized();
-						normal *= param.idealHeight;
+						normal *= param.userHeight;
 						normal += bottomPoint;
-						v_map.insert(std::make_pair(hybridMesh.vecCells[i][j + 3], normal));
+						v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][j + 3], normal));
 					}
 				}
 			}
+			//pyramid
+			if (hybridMesh.vecCells[i].size() == 5) {
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][2]) && !v_height_map.count(hybridMesh.vecCells[i][2])) {
+					for (int j = 0; j < 3; ++j) {
+						topPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][j];
+						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][1]][j];
+					}
+					normal = (topPoint - bottomPoint).normalized();
+					normal *= param.userHeight;
+					normal += bottomPoint;
+					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][2], normal));
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][3]) && !v_height_map.count(hybridMesh.vecCells[i][3])) {
+					for (int j = 0; j < 3; ++j) {
+						topPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][j];
+						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][j];
+					}
+					normal = (topPoint - bottomPoint).normalized();
+					normal *= param.userHeight;
+					normal += bottomPoint;
+					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
+				}
+			}
+			//tet
+			if (hybridMesh.vecCells[i].size() == 4) {
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][3]) && !v_height_map.count(hybridMesh.vecCells[i][3])) {
+					for (int j = 0; j < 3; ++j) {
+						topPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][j];
+						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][j];
+					}
+					normal = (topPoint - bottomPoint).normalized();
+					normal *= param.userHeight;
+					normal += bottomPoint;
+					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
+				}
+			}
 		}
-		b.resize(v_map.size(), 1);
-		bc.resize(v_map.size(), 3);
-		size_t count = 0;
-		std::unordered_map < size_t, Eigen::VectorXd >::iterator it = v_map.begin();
-		while (it != v_map.end()) {
-			b(count) = it->first;
-			bc(count, 0) = it->second(0);
-			bc(count, 1) = it->second(1);
-			bc(count, 2) = it->second(2);
-			++count;
-			++it;
-		}
-		bs.emplace_back(b);
-		bcs.emplace_back(bc);
 		return 1;
 	}
 
@@ -1035,27 +1034,42 @@ namespace slim_opt {
 	{
 		std::vector < Eigen::VectorXi > bs;
 		std::vector < Eigen::MatrixXd > bcs;
-		getBoundaryVerConstraints(tetMesh, data, bs, bcs);
-		//getLaplaceConstraints(hybridMesh, tetMesh, data, bs, bcs);
-		getHeightConstraints(param, hybridMesh, tetMesh, data, bs, bcs);
-		size_t bNum = 0;
-		size_t bcNum = 0;
-		for (int i = 0; i < bs.size(); ++i) {
-			bNum += bs[i].rows();
-			bcNum += bcs[i].rows();
+		std::unordered_map < size_t, Eigen::Vector3d > v_boundary_map;
+		std::unordered_map < size_t, Eigen::Vector3d > v_height_map;
+		std::unordered_map < size_t, Eigen::Vector3d > v_laplace_map;
+		getBoundaryVerConstraints(tetMesh, data, bs, bcs, v_boundary_map);
+		getHeightConstraints(param, hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_height_map);
+		//getLaplaceConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_laplace_map);
+		data.b.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 1);
+		data.bc.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 3);
+		size_t count = 0;
+		std::unordered_map < size_t, Eigen::Vector3d >::iterator it = v_boundary_map.begin();
+		while (it != v_boundary_map.end()) {
+			data.b(count) = it->first;
+			data.bc(count, 0) = it->second(0);
+			data.bc(count, 1) = it->second(1);
+			data.bc(count, 2) = it->second(2);
+			++count;
+			++it;
 		}
-		data.b.resize(bNum, 1);
-		data.bc.resize(bcNum, 3);
-		size_t idx = 0;
-		for (int i = 0; i < bs.size(); ++i) {
-			for (size_t j = 0; j < bs[i].rows(); ++j) {
-				data.b(idx) = bs[i](j);
-				data.bc.row(idx) = bcs[i].row(j);
-				++idx;
-			}
+		it = v_height_map.begin();
+		while (it != v_height_map.end()) {
+			data.b(count) = it->first;
+			data.bc(count, 0) = it->second(0);
+			data.bc(count, 1) = it->second(1);
+			data.bc(count, 2) = it->second(2);
+			++count;
+			++it;
 		}
-		if (bNum != bcNum) abort();
-		if (idx != bNum) abort();
+		it = v_laplace_map.begin();
+		while (it != v_laplace_map.end()) {
+			data.b(count) = it->first;
+			data.bc(count, 0) = it->second(0);
+			data.bc(count, 1) = it->second(1);
+			data.bc(count, 2) = it->second(2);
+			++count;
+			++it;
+		}
 		return 1;
 	}
 
@@ -1069,7 +1083,7 @@ namespace slim_opt {
 		SLIMData data;
 		double energyQuality = 0;
 		double energySoft = 0;
-		int iter = 30;
+		int iter = 10;
 		getSoftConstraints(param, hybridMesh, tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
 		Eigen::MatrixXd tetVer = tetMesh.matVertices;
