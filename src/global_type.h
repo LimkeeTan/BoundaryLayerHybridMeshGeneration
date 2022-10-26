@@ -12,6 +12,7 @@ namespace global_type {
 		Eigen::MatrixXd matVertices;
 		Eigen::MatrixXi matCells;
 		size_t boundaryVerNums;
+		size_t boundaryCellsNums;
 	};
 
 	struct MeshNormal {
@@ -21,12 +22,20 @@ namespace global_type {
 	};
 
 	struct Parameter {
+		int initLayerNumber{};
 		int layerNumber{};
 		double initHeight{};
-		double idealHeight{};
+		double userHeight{};
+		std::vector < double > idealHeight;
 		double increaseRatio{};
 		std::vector < double > eps;
 	};
+
+	//struct MarchInfo
+	//{
+	//	double _thickness;
+	//	double _ratio;
+	//};
 
 	const int tetFaces[4][3] =
 	{
@@ -40,19 +49,19 @@ namespace global_type {
 
 	const int prismSixTetCells[6][4] =
 	{
-		{1, 2, 3, 0},
-		{2, 0, 4, 1},
-		{0, 1, 4, 2},
-		{5, 4, 0, 3},
-		{3, 5, 1, 4},
-		{4, 3, 2, 5}
+		{1, 3, 2, 0},
+		{2, 4, 0, 1},
+		{0, 4, 1, 2},
+		{5, 0, 4, 3},
+		{3, 1, 5, 4},
+		{4, 2, 3, 5}
 	};
 
 	const int prismThreeTetCells[3][4] =
 	{
-		{0, 2, 1, 3},
-		{2, 4, 3, 5},
-		{1, 3, 2, 4}
+		{0, 1, 2, 3},
+		{2, 3, 4, 5},
+		{1, 2, 3, 4}
 	};
 
 	const int pyramidTetCells[4][4] =

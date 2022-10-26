@@ -216,28 +216,148 @@ namespace mesh_utils {
 		return 1;
 	}
 
+	int pyramidJacobian(const global_type::Mesh& pyramidMesh, const std::string& filename)
+	{
+		Eigen::Vector3d c0;
+		Eigen::Vector3d c1;
+		Eigen::Vector3d c2;
+		Eigen::Vector3d c3;
+		int inverse = 0;
+		std::vector < int > inversePyramid;
+		std::vector < std::vector < size_t > > inverseCell;
+		for (size_t i = 0; i < pyramidMesh.matCells.rows(); ++i) {
+			for (int j = 0; j < 4; ++j) {
+				c0 = pyramidMesh.matVertices.row(pyramidMesh.matCells(i, global_type::pyramidTetCells[j][0]));
+				c1 = pyramidMesh.matVertices.row(pyramidMesh.matCells(i, global_type::pyramidTetCells[j][1]));
+				c2 = pyramidMesh.matVertices.row(pyramidMesh.matCells(i, global_type::pyramidTetCells[j][2]));
+				c3 = pyramidMesh.matVertices.row(pyramidMesh.matCells(i, global_type::pyramidTetCells[j][3]));
+				double jacobianVal = a_jacobian(c0, c1, c2, c3);
+				if (jacobianVal < 0) {
+					++inverse;
+					inversePyramid.emplace_back(i);
+					break;
+				}
+			}
+		}
+		if (inverse > 0) {
+			std::cout << "flipped elements: " << inverse << std::endl;
+			for (int i = 0; i < inversePyramid.size(); ++i) {
+				std::cout << inversePyramid[i] << " " << std::endl;
+				inverseCell.emplace_back(pyramidMesh.vecCells[inversePyramid[i]]);
+			}
+		}
+		mesh_io::saveVTK(filename, pyramidMesh.vecVertices, inverseCell);
+		return 1;
+	}
+
 	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename)
 	{
-		global_type::Mesh prism;
-		global_type::Mesh tet;
-		tet.vecVertices = hybridMesh.vecVertices;
+		global_type::Mesh* prism = new global_type::Mesh;
+		global_type::Mesh* tet = new global_type::Mesh;
+		global_type::Mesh* pyramid = new global_type::Mesh;
+		tet->vecVertices = hybridMesh.vecVertices;
 		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
 			if (hybridMesh.vecCells[i].size() == 4) {
-				tet.vecCells.emplace_back(hybridMesh.vecCells[i]);
+				tet->vecCells.emplace_back(hybridMesh.vecCells[i]);
 			}
 		}
-		convertVecToMat(tet);
-		prism.vecVertices = hybridMesh.vecVertices;
+		convertVecToMat(*tet);
+		std::string tet_filename = filename.substr(0, filename.rfind("."));
+		tetJacobian(*tet, tet_filename + "_tet.vtk");
+		delete tet;
+
+		prism->vecVertices = hybridMesh.vecVertices;
 		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
 			if (hybridMesh.vecCells[i].size() == 6) {
-				prism.vecCells.emplace_back(hybridMesh.vecCells[i]);
+				prism->vecCells.emplace_back(hybridMesh.vecCells[i]);
 			}
 		}
-		convertVecToMat(prism);
-		std::string tet_filename = filename.substr(0, filename.rfind("."));
+		convertVecToMat(*prism);
 		std::string prism_filename = filename.substr(0, filename.rfind("."));
-		tetJacobian(tet, tet_filename + "_tet.vtk");
-		prismJacobian(prism, prism_filename + "_prism.vtk");
+		prismJacobian(*prism, prism_filename + "_prism.vtk");
+		delete prism;
+
+		pyramid->vecVertices = hybridMesh.vecVertices;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 5) {
+				pyramid->vecCells.emplace_back(hybridMesh.vecCells[i]);
+			}
+		}
+		convertVecToMat(*pyramid);
+		std::string pyramid_filename = filename.substr(0, filename.rfind("."));
+		pyramidJacobian(*pyramid, pyramid_filename + "_pyramid.vtk");
+		delete pyramid;
+		return 1;
+	}
+
+	int computeForwardDistance(const global_type::Mesh& mesh,
+		const global_type::MeshNormal& meshNormal,
+		global_type::Parameter& param)
+	{
+		typedef CGAL::Simple_cartesian<double> K;
+		typedef K::Triangle_3 Triangle;
+		typedef K::Point_3 Point;
+		typedef std::list<Triangle>::iterator TriIterator;
+		typedef CGAL::AABB_triangle_primitive<K, TriIterator> TriPrimitive;
+		typedef CGAL::AABB_traits<K, TriPrimitive> TriTraits;
+		typedef CGAL::AABB_tree<TriTraits> TriTree;
+		typedef K::Segment_3 Segment;
+		typedef K::Ray_3 Ray;
+		typedef K::Vector_3 Vector;
+		typedef boost::optional<TriTree::Intersection_and_primitive_id<Ray>::Type> Ray_intersection;
+		std::vector < double > idealHeight(mesh.vecVertices.size(), param.userHeight);
+		std::list < Triangle > triangles;
+		std::vector < Point > ps(3);
+		for (size_t i = 0; i < mesh.vecCells.size(); ++i) {
+			for (int j = 0; j < 3; ++j) {
+				ps[j] = { mesh.vecVertices[mesh.vecCells[i][j]][0], mesh.vecVertices[mesh.vecCells[i][j]][1], mesh.vecVertices[mesh.vecCells[i][j]][2] };
+			}
+			triangles.push_back({ ps[0],ps[1],ps[2] });
+		}
+		TriTree triTree(triangles.begin(), triangles.end());
+		triTree.accelerate_distance_queries();
+		if (mesh.vecVertices.size() != mesh.matVertices.rows()) {
+			std::cout << "error: vertices vector sizes not equal to matrix rows" << std::endl;
+			return 0;
+		}
+		if (mesh.vecCells.size() != mesh.matCells.rows()) {
+			std::cout << "error: cells vector sizes not equal to matrix rows" << std::endl;
+			return 0;
+		}
+		Eigen::Vector3d dir;
+		Eigen::Vector3d p;
+		Eigen::Vector3d q;
+		for (size_t i = 0; i < mesh.matVertices.rows(); ++i) {
+			for (int j = 0; j < 3; ++j) {
+				dir(j) = meshNormal.verticesNormalizedNormal[i][j];
+			}
+			for (int j = 0; j < 3; ++j) {
+				p(j) = mesh.matVertices(i, j) + 0.01 * dir(j);
+				q(j) = mesh.matVertices(i, j) + 3 * idealHeight[i] * dir(j);
+			}
+			Segment segmentQuery({ p(0),p(1),p(2) }, { q(0),q(1),q(2) });
+			if (triTree.do_intersect(segmentQuery)) {
+				Ray ray(Point(p(0), p(1), p(2)), Vector(dir(0), dir(1), dir(2)));
+				Ray_intersection hit = triTree.first_intersection(ray);
+				if (hit) {
+					const Point& point = boost::get < Point >(hit->first);
+					const TriTree::Primitive_id& primitive_id = boost::get < TriTree::Primitive_id >(hit->second);
+					Eigen::Matrix3d mat;
+					for (int j = 0; j < 3; ++j) {
+						mat.col(j) << primitive_id->vertex(j).x(), primitive_id->vertex(j).y(), primitive_id->vertex(j).z();
+					}
+					int idx;
+					(mat.colwise() - p).colwise().squaredNorm().minCoeff(&idx);
+					idealHeight[i] = (p - mat.col(idx)).norm() / 3;
+				}
+			}
+		}
+		for (size_t i = 0; i < param.idealHeight.size(); ++i) {
+			param.idealHeight[i] = idealHeight[i];
+		}
+		for (size_t i = 0; i < param.idealHeight.size(); ++i) {
+			std::cout << param.idealHeight[i] << std::endl;
+		}
 		return 1;
 	}
 }

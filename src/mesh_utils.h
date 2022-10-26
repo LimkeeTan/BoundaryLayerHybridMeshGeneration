@@ -1,6 +1,12 @@
 #ifndef MESH_UTILS_H_
 #define MESH_UTILS_H_
 #include "global_type.h"
+#include "CGAL/Simple_cartesian.h"
+#include "CGAL/AABB_tree.h"
+#include "CGAL/AABB_traits.h"
+#include "CGAL/AABB_face_graph_triangle_primitive.h"
+#include "CGAL/AABB_triangle_primitive.h"
+#include "CGAL/AABB_segment_primitive.h"
 
 namespace mesh_utils {
 	bool isInVector(const std::vector < size_t >& vec,
@@ -32,6 +38,10 @@ namespace mesh_utils {
 	int prismJacobian(const global_type::Mesh & prismMesh, const std::string& filename);
 
 	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename);
+
+	int computeForwardDistance(const global_type::Mesh& mesh,
+		const global_type::MeshNormal& meshNormal,
+		global_type::Parameter& param);
 }
 
 #endif
