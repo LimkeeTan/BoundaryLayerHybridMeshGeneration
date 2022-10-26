@@ -107,16 +107,11 @@ namespace topo_hybrid {
 		global_type::Mesh& hybridMesh
 	)
 	{
-		// valid check
-		//if (!validTetCheck(tetTopo, meshNormal, vertMap, param, prismTopo)) {
-		//	std::cout << "failed to check tet" << std::endl;
-		//	return 0;
-		//}
-
 		// combine to obtain hybridMesh
 		size_t triVerNum = hybridMesh.vecVertices.size();
 		hybridMesh.vecVertices = prismTopo.vecVertices;
 		hybridMesh.vecCells = prismTopo.vecCells;
+		hybridMesh.boundaryCellsNums = prismTopo.vecCells.size();
 		for (size_t i = triVerNum; i < tetTopo.vecVertices.size(); ++i) {
 			hybridMesh.vecVertices.emplace_back(tetTopo.vecVertices[i]);
 			vertMap[i].emplace_back(hybridMesh.vecVertices.size() - 1);

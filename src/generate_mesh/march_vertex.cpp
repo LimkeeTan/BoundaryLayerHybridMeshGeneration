@@ -46,42 +46,42 @@ namespace march_vertex {
 			//prism
 			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() > 1) {
 				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
-					for (int k = 0; k < 3; ++k) {
-						prismCell[k] = vertMap.at(cells[i][k])[j];
-					}
-					for (int k = 3; k < 6; ++k) {
-						prismCell[k] = vertMap.at(cells[i][k - 3])[j + 1];
-					}
+					prismCell[0] = vertMap.at(cells[i][0])[j];
+					prismCell[1] = vertMap.at(cells[i][2])[j];
+					prismCell[2] = vertMap.at(cells[i][1])[j];
+					prismCell[3] = vertMap.at(cells[i][0])[j + 1];
+					prismCell[4] = vertMap.at(cells[i][2])[j + 1];
+					prismCell[5] = vertMap.at(cells[i][1])[j + 1];
 					prismTopo.vecCells.emplace_back(prismCell);
 				}
 			}
 			//pyramid
 			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() > 1) {
 				for (int j = 0; j < vertMap.at(cells[i][1]).size() - 1; ++j) {
-					pyramidCell[0] = vertMap.at(cells[i][2])[j];
-					pyramidCell[1] = vertMap.at(cells[i][1])[j];
-					pyramidCell[2] = vertMap.at(cells[i][1])[j + 1];
-					pyramidCell[3] = vertMap.at(cells[i][2])[j + 1];
+					pyramidCell[0] = vertMap.at(cells[i][1])[j];
+					pyramidCell[1] = vertMap.at(cells[i][2])[j];
+					pyramidCell[2] = vertMap.at(cells[i][2])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][1])[j + 1];
 					pyramidCell[4] = vertMap.at(cells[i][0])[0];
 					prismTopo.vecCells.emplace_back(pyramidCell);
 				}
 			}
 			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() > 1) {
 				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
-					pyramidCell[0] = vertMap.at(cells[i][0])[j];
-					pyramidCell[1] = vertMap.at(cells[i][2])[j];
-					pyramidCell[2] = vertMap.at(cells[i][2])[j + 1];
-					pyramidCell[3] = vertMap.at(cells[i][0])[j + 1];
+					pyramidCell[0] = vertMap.at(cells[i][2])[j];
+					pyramidCell[1] = vertMap.at(cells[i][0])[j];
+					pyramidCell[2] = vertMap.at(cells[i][0])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][2])[j + 1];
 					pyramidCell[4] = vertMap.at(cells[i][1])[0];
 					prismTopo.vecCells.emplace_back(pyramidCell);
 				}
 			}
 			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() == 1) {
 				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
-					pyramidCell[0] = vertMap.at(cells[i][1])[j];
-					pyramidCell[1] = vertMap.at(cells[i][0])[j];
-					pyramidCell[2] = vertMap.at(cells[i][0])[j + 1];
-					pyramidCell[3] = vertMap.at(cells[i][1])[j + 1];
+					pyramidCell[0] = vertMap.at(cells[i][0])[j];
+					pyramidCell[1] = vertMap.at(cells[i][1])[j];
+					pyramidCell[2] = vertMap.at(cells[i][1])[j + 1];
+					pyramidCell[3] = vertMap.at(cells[i][0])[j + 1];
 					pyramidCell[4] = vertMap.at(cells[i][2])[0];
 					prismTopo.vecCells.emplace_back(pyramidCell);
 				}
@@ -90,8 +90,8 @@ namespace march_vertex {
 			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() == 1) {
 				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
 					tetraCell[0] = vertMap.at(cells[i][0])[j];
-					tetraCell[1] = vertMap.at(cells[i][1])[0];
-					tetraCell[2] = vertMap.at(cells[i][2])[0];
+					tetraCell[1] = vertMap.at(cells[i][2])[0];
+					tetraCell[2] = vertMap.at(cells[i][1])[0];
 					tetraCell[3] = vertMap.at(cells[i][0])[j + 1];
 					prismTopo.vecCells.emplace_back(tetraCell);
 				}
@@ -99,8 +99,8 @@ namespace march_vertex {
 			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() == 1) {
 				for (int j = 0; j < vertMap.at(cells[i][1]).size() - 1; ++j) {
 					tetraCell[0] = vertMap.at(cells[i][1])[j];
-					tetraCell[1] = vertMap.at(cells[i][2])[0];
-					tetraCell[2] = vertMap.at(cells[i][0])[0];
+					tetraCell[1] = vertMap.at(cells[i][0])[0];
+					tetraCell[2] = vertMap.at(cells[i][2])[0];
 					tetraCell[3] = vertMap.at(cells[i][1])[j + 1];
 					prismTopo.vecCells.emplace_back(tetraCell);
 				}
@@ -108,8 +108,8 @@ namespace march_vertex {
 			if (vertMap.at(cells[i][0]).size() == 1 && vertMap.at(cells[i][1]).size() == 1 && vertMap.at(cells[i][2]).size() > 1) {
 				for (int j = 0; j < vertMap.at(cells[i][2]).size() - 1; ++j) {
 					tetraCell[0] = vertMap.at(cells[i][2])[j];
-					tetraCell[1] = vertMap.at(cells[i][0])[0];
-					tetraCell[2] = vertMap.at(cells[i][1])[0];
+					tetraCell[1] = vertMap.at(cells[i][1])[0];
+					tetraCell[2] = vertMap.at(cells[i][0])[0];
 					tetraCell[3] = vertMap.at(cells[i][2])[j + 1];
 					prismTopo.vecCells.emplace_back(tetraCell);
 				}
@@ -127,7 +127,7 @@ namespace march_vertex {
 	{
 		double initHeight = param.initHeight;
 		double increaseRatio = param.increaseRatio;
-		int layerNum = param.layerNumber;
+		int layerNum = param.initLayerNumber;
 		std::vector < double > eps(layerNum);
 		double sum = 0;
 		for (int i = 0; i < layerNum; ++i) {
