@@ -119,6 +119,146 @@ namespace mesh_io {
 		return 1;
 	}
 
+	int readVTK(const std::string& filename,
+		std::vector < std::vector < double > >& vertices,
+		std::vector < std::vector < size_t > >& cells,
+		std::vector < int >& boundary_layer_label,
+		std::vector < size_t >& boundary_layer_cells
+	)
+	{
+		vertices.clear();
+		cells.clear();
+		std::ifstream is(filename);
+		if (!is.is_open()) {
+			std::cout << "Unable to open file";
+			return 0;
+		}
+		std::string line;
+		char str[50];
+		size_t verticesNum;
+		size_t cellsNum;
+		size_t cellsLists;
+		int cellType;
+		double cellVertices[8];
+		std::vector < size_t > cell;
+		while (std::getline(is, line)) {
+			std::istringstream iss(line);
+			if (line.find("POINTS") != std::string::npos) {
+				iss >> str >> verticesNum >> str;
+				vertices.resize(verticesNum);
+				break;
+			}
+		}
+		double x, y, z;
+		for (size_t i = 0; i < verticesNum; ++i) {
+			std::getline(is, line);
+			std::istringstream iss(line);
+			iss >> x >> y >> z;
+			vertices[i].emplace_back(x);
+			vertices[i].emplace_back(y);
+			vertices[i].emplace_back(z);
+		}
+		while (std::getline(is, line)) {
+			std::istringstream iss(line);
+			if (line.find("CELLS") != std::string::npos) {
+				iss >> str >> cellsNum >> cellsLists;
+				cells.resize(cellsNum);
+				break;
+			}
+		}
+		for (size_t i = 0; i < cellsNum; ++i) {
+			std::getline(is, line);
+			std::istringstream iss(line);
+			iss >> cellType;
+			switch (cellType) {
+			case 1:
+				iss >> cellVertices[0];
+				cells[i].emplace_back(cellVertices[0]);
+				break;
+			case 2:
+				iss >> cellVertices[0] >> cellVertices[1];
+				for (int j = 0; j < 2; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 3:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2];
+				for (int j = 0; j < 3; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 4:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2] >> cellVertices[3];
+				for (int j = 0; j < 4; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 5:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2] >> cellVertices[3]
+					>> cellVertices[4];
+				for (int j = 0; j < 5; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 6:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2] >> cellVertices[3]
+					>> cellVertices[4] >> cellVertices[5];
+				for (int j = 0; j < 6; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 7:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2] >> cellVertices[3]
+					>> cellVertices[4] >> cellVertices[5]
+					>> cellVertices[6];
+				for (int j = 0; j < 7; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			case 8:
+				iss >> cellVertices[0] >> cellVertices[1]
+					>> cellVertices[2] >> cellVertices[3]
+					>> cellVertices[4] >> cellVertices[5]
+					>> cellVertices[6] >> cellVertices[7];
+				for (int j = 0; j < 8; ++j) {
+					cells[i].emplace_back(cellVertices[j]);
+				}
+				break;
+			default:
+				std::cout << "Error : Unsupport Type\n";
+				return 0;
+				break;
+			}
+		}
+		while (std::getline(is, line)) {
+			std::istringstream iss(line);
+			if (line.find("LOOKUP_TABLE") != std::string::npos) {
+				break;
+			}
+		}
+		int label;
+		std::unordered_map < int, std::vector < size_t > > labels_cells_map;
+		for (size_t i = 0; i < cellsNum; ++i) {
+			std::getline(is, line);
+			std::istringstream iss(line);
+			iss >> label;
+			labels_cells_map[label].emplace_back(i);
+		}
+		boundary_layer_cells.clear();
+		for (int i = 0; i < boundary_layer_label.size(); ++i) {
+			for (int j = 0; j < labels_cells_map[boundary_layer_label[i]].size(); ++j) {
+				boundary_layer_cells.emplace_back(labels_cells_map[boundary_layer_label[i]][j]);
+			}
+		}
+		is.close();
+		return 1;
+	}
+
 	int saveVTK(const std::string& filename,
 		const std::vector < std::vector < double > >& vertices,
 		const std::vector < std::vector < size_t > >& cells

@@ -16,7 +16,7 @@ namespace global_type {
 	};
 
 	struct MeshNormal {
-		std::vector < std::vector < double > > verticesNormal;
+		std::vector < size_t > boundary_vertex;
 		std::vector < std::vector < double > > cellsNormal;
 		std::vector < std::vector < double > > verticesNormalizedNormal;
 	};
@@ -29,13 +29,9 @@ namespace global_type {
 		std::vector < double > idealHeight;
 		double increaseRatio{};
 		std::vector < double > eps;
+		std::vector < int > boundary_layer_label;
+		std::vector < size_t > boundary_layer_cell;
 	};
-
-	//struct MarchInfo
-	//{
-	//	double _thickness;
-	//	double _ratio;
-	//};
 
 	const int tetFaces[4][3] =
 	{

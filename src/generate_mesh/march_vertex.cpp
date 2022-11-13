@@ -8,6 +8,7 @@ namespace march_vertex {
 	}
 
 	int generateVertices(const std::vector < std::vector < double > >& vertices,
+		const std::vector < size_t >& boundary_vertex,
 		const std::vector < std::vector < double > >& normalizedNorm,
 		const int& layerNum,
 		const std::vector < double >& eps,
@@ -18,6 +19,7 @@ namespace march_vertex {
 		std::vector < double > initVertex(3);
 		std::vector < double > marchVertex(3);
 		for (size_t i = 0; i < vertices.size(); ++i) {
+			if (!mesh_utils::isInVector(boundary_vertex, i)) continue;
 			initVertex = vertices[i];
 			vertMap[i].emplace_back(i);
 			if (noNormal(normalizedNorm[i])) continue;
@@ -34,6 +36,7 @@ namespace march_vertex {
 
 	int generateCell(const std::vector < std::vector < size_t > >& cells,
 		const std::unordered_map < size_t, std::vector < size_t > >& vertMap,
+		const std::vector < size_t >& boundary_layer_cell,
 		global_type::Mesh& prismTopo
 	)
 	{
@@ -43,6 +46,18 @@ namespace march_vertex {
 		std::vector < size_t > pyramidCell(5);
 		std::vector < size_t > tetraCell(4);
 		for (size_t i = 0; i < cells.size(); ++i) {
+			if (!mesh_utils::isInVector(boundary_layer_cell, i)) {
+				if (vertMap.count(cells[i][0])) {
+					prismTopo.vecCells[i][0] = vertMap.at(cells[i][0]).back();
+				}
+				if (vertMap.count(cells[i][1])) {
+					prismTopo.vecCells[i][1] = vertMap.at(cells[i][1]).back();
+				}
+				if (vertMap.count(cells[i][2])) {
+					prismTopo.vecCells[i][2] = vertMap.at(cells[i][2]).back();
+				}
+				continue;
+			}
 			//prism
 			if (vertMap.at(cells[i][0]).size() > 1 && vertMap.at(cells[i][1]).size() > 1 && vertMap.at(cells[i][2]).size() > 1) {
 				for (int j = 0; j < vertMap.at(cells[i][0]).size() - 1; ++j) {
@@ -146,12 +161,11 @@ namespace march_vertex {
 		prismTopo.matVertices = mesh.matVertices;
 		prismTopo.vecCells = mesh.vecCells;
 		prismTopo.matCells = mesh.matCells;
-		
-		generateVertices(mesh.vecVertices, meshNormal.verticesNormalizedNormal, layerNum, eps, prismTopo, vertMap);
-		generateCell(mesh.vecCells, vertMap, prismTopo);
+		generateVertices(mesh.vecVertices, meshNormal.boundary_vertex, meshNormal.verticesNormalizedNormal, layerNum, eps, prismTopo, vertMap);
+		generateCell(mesh.vecCells, vertMap, param.boundary_layer_cell, prismTopo);
 
 		//Test
-		mesh_io::saveVTK("data/wanxiangjie_prism.vtk", prismTopo.vecVertices, prismTopo.vecCells);
+		//mesh_io::saveVTK("data/new_opt_0_1_2_prism.vtk", prismTopo.vecVertices, prismTopo.vecCells);
 		return 1;
 	}
 }

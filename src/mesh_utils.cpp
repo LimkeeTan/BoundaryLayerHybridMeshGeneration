@@ -20,6 +20,15 @@ namespace mesh_utils {
 		else return false;
 	}
 
+	bool isInVector(const std::vector < int >& vec,
+		const int& value
+	)
+	{
+		std::vector < int >::const_iterator it = std::find(vec.begin(), vec.end(), value);
+		if (it != vec.end()) return true;
+		else return false;
+	}
+
 	int convertVecToMat(global_type::Mesh& mesh)
 	{
 		if (mesh.vecVertices.size() == 0) return 1;
@@ -75,6 +84,7 @@ namespace mesh_utils {
 	}
 
 	int computeTriNormal(const global_type::Mesh& mesh,
+		const std::vector < size_t >& boundary_layer_cell,
 		global_type::MeshNormal& meshNormal
 	)
 	{
@@ -101,10 +111,24 @@ namespace mesh_utils {
 	}
 
 	int constructVerTriMap(const Eigen::MatrixXi& tri,
-		std::unordered_map < size_t, std::vector < size_t > >& verTriMap
+		std::map < size_t, std::vector < size_t > >& verTriMap
 	)
 	{
 		for (size_t i = 0; i < tri.rows(); ++i) {
+			for (int j = 0; j < 3; ++j) {
+				verTriMap[tri(i, j)].emplace_back(i);
+			}
+		}
+		return 1;
+	}
+
+	int constructVerTriMap(const Eigen::MatrixXi& tri,
+		const std::vector < size_t >& boundary_layer_cell,
+		std::map < size_t, std::vector < size_t > >& verTriMap
+	)
+	{
+		for (size_t i = 0; i < tri.rows(); ++i) {
+			if (!isInVector(boundary_layer_cell, i)) continue;
 			for (int j = 0; j < 3; ++j) {
 				verTriMap[tri(i, j)].emplace_back(i);
 			}
@@ -174,7 +198,7 @@ namespace mesh_utils {
 		if (inverse > 0) {
 			std::cout << "flipped elements: " << inverse << std::endl;
 			for (int i = 0; i < inverseTet.size(); ++i) {
-				std::cout << inverseTet[i] << " " << std::endl;
+				//std::cout << inverseTet[i] << " " << std::endl;
 				inverseCell.emplace_back(tetMesh.vecCells[inverseTet[i]]);
 			}
 		}
@@ -208,7 +232,7 @@ namespace mesh_utils {
 		if (inverse > 0) {
 			std::cout << "flipped elements: " << inverse << std::endl;
 			for (int i = 0; i < inversePrism.size(); ++i) {
-				std::cout << inversePrism[i] << " " << std::endl;
+				//std::cout << inversePrism[i] << " " << std::endl;
 				inverseCell.emplace_back(prismMesh.vecCells[inversePrism[i]]);
 			}
 		}
@@ -242,7 +266,7 @@ namespace mesh_utils {
 		if (inverse > 0) {
 			std::cout << "flipped elements: " << inverse << std::endl;
 			for (int i = 0; i < inversePyramid.size(); ++i) {
-				std::cout << inversePyramid[i] << " " << std::endl;
+				//std::cout << inversePyramid[i] << " " << std::endl;
 				inverseCell.emplace_back(pyramidMesh.vecCells[inversePyramid[i]]);
 			}
 		}
@@ -305,7 +329,15 @@ namespace mesh_utils {
 		typedef K::Ray_3 Ray;
 		typedef K::Vector_3 Vector;
 		typedef boost::optional<TriTree::Intersection_and_primitive_id<Ray>::Type> Ray_intersection;
-		std::vector < double > idealHeight(mesh.vecVertices.size(), param.userHeight);
+		std::vector < double > idealHeight(mesh.vecVertices.size());
+		for (size_t i = 0; i < idealHeight.size(); ++i) {
+			if (!isInVector(meshNormal.boundary_vertex, i)) {
+				idealHeight[i] = -1;
+			}
+			else {
+				idealHeight[i] = param.userHeight;
+			}
+		}
 		std::list < Triangle > triangles;
 		std::vector < Point > ps(3);
 		for (size_t i = 0; i < mesh.vecCells.size(); ++i) {
@@ -328,6 +360,7 @@ namespace mesh_utils {
 		Eigen::Vector3d p;
 		Eigen::Vector3d q;
 		for (size_t i = 0; i < mesh.matVertices.rows(); ++i) {
+			if (!isInVector(meshNormal.boundary_vertex, i)) continue;
 			for (int j = 0; j < 3; ++j) {
 				dir(j) = meshNormal.verticesNormalizedNormal[i][j];
 			}
@@ -340,7 +373,7 @@ namespace mesh_utils {
 				Ray ray(Point(p(0), p(1), p(2)), Vector(dir(0), dir(1), dir(2)));
 				Ray_intersection hit = triTree.first_intersection(ray);
 				if (hit) {
-					const Point& point = boost::get < Point >(hit->first);
+					//const Point& point = boost::get < Point >(hit->first);
 					const TriTree::Primitive_id& primitive_id = boost::get < TriTree::Primitive_id >(hit->second);
 					Eigen::Matrix3d mat;
 					for (int j = 0; j < 3; ++j) {
@@ -352,12 +385,7 @@ namespace mesh_utils {
 				}
 			}
 		}
-		for (size_t i = 0; i < param.idealHeight.size(); ++i) {
-			param.idealHeight[i] = idealHeight[i];
-		}
-		for (size_t i = 0; i < param.idealHeight.size(); ++i) {
-			std::cout << param.idealHeight[i] << std::endl;
-		}
+		param.idealHeight = idealHeight;
 		return 1;
 	}
 }

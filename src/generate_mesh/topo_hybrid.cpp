@@ -120,6 +120,7 @@ namespace topo_hybrid {
 		for (size_t i = 0; i < tetTopo.vecCells.size(); ++i) {
 			singleTet = tetTopo.vecCells[i];
 			for (int j = 0; j < 4; ++j) {
+				if (!vertMap.count(singleTet[j])) continue;
 				singleTet[j] = vertMap.at(singleTet[j]).back();
 			}
 			hybridMesh.vecCells.emplace_back(singleTet);

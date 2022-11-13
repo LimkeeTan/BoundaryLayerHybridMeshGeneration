@@ -10,6 +10,13 @@ namespace mesh_io {
 		std::vector < std::vector < size_t > >& cells
 	);
 
+	int readVTK(const std::string& filename,
+		std::vector < std::vector < double > >& vertices,
+		std::vector < std::vector < size_t > >& cells,
+		std::vector < int >& boundary_layer_label,
+		std::vector < size_t >& boundary_layer_cells
+	);
+
 	int saveVTK(const std::string& filename,
 		const std::vector < std::vector < double > >& vertices,
 		const std::vector < std::vector < size_t > >& cells

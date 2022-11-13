@@ -334,11 +334,12 @@ namespace slim_opt {
 		data.slim_energy = CONFORMAL;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
+		data.weight_opt = 10;
 		data.M.setConstant(data.weight_opt);
 		data.mesh_area = data.M.sum();
 		data.exp_factor = 1.0;
 
-		data.soft_const_p = 1e5;
+		data.soft_const_p = 1e4;
 
 		data.proximal_p = 0.0001;
 
@@ -980,7 +981,7 @@ namespace slim_opt {
 							bottomPoint(k) = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][k];
 						}
 						normal = (topPoint - bottomPoint).normalized();
-						normal *= param.userHeight;
+						normal *= param.idealHeight[hybridMesh.vecCells[i][j]];
 						normal += bottomPoint;
 						v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][j + 3], normal));
 					}
@@ -994,7 +995,7 @@ namespace slim_opt {
 						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][1]][j];
 					}
 					normal = (topPoint - bottomPoint).normalized();
-					normal *= param.userHeight;
+					normal *= param.idealHeight[hybridMesh.vecCells[i][1]];
 					normal += bottomPoint;
 					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][2], normal));
 				}
@@ -1004,7 +1005,7 @@ namespace slim_opt {
 						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][j];
 					}
 					normal = (topPoint - bottomPoint).normalized();
-					normal *= param.userHeight;
+					normal *= param.idealHeight[hybridMesh.vecCells[i][0]];
 					normal += bottomPoint;
 					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
 				}
@@ -1017,7 +1018,7 @@ namespace slim_opt {
 						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][j];
 					}
 					normal = (topPoint - bottomPoint).normalized();
-					normal *= param.userHeight;
+					normal *= param.idealHeight[hybridMesh.vecCells[i][0]];
 					normal += bottomPoint;
 					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
 				}
@@ -1039,7 +1040,7 @@ namespace slim_opt {
 		std::unordered_map < size_t, Eigen::Vector3d > v_laplace_map;
 		getBoundaryVerConstraints(tetMesh, data, bs, bcs, v_boundary_map);
 		getHeightConstraints(param, hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_height_map);
-		//getLaplaceConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_laplace_map);
+		getLaplaceConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_laplace_map);
 		data.b.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 1);
 		data.bc.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 3);
 		size_t count = 0;
@@ -1081,9 +1082,7 @@ namespace slim_opt {
 	)
 	{
 		SLIMData data;
-		double energyQuality = 0;
-		double energySoft = 0;
-		int iter = 10;
+		int iter = 5;
 		getSoftConstraints(param, hybridMesh, tetMesh, data);
 		std::cout << "Precompute..." << std::endl;
 		Eigen::MatrixXd tetVer = tetMesh.matVertices;

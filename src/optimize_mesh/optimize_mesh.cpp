@@ -3,23 +3,6 @@
 #include "m_slim.h"
 
 namespace optimize_mesh {
-	//const Eigen::Vector3d& OptimizeMesh::computeTriNorm(const size_t& idx) const
-	//{
-	//	Eigen::Vector3d v0;
-	//	Eigen::Vector3d v1;
-	//	Eigen::Vector3d v2;
-	//	Eigen::Vector3d e0;
-	//	Eigen::Vector3d e1;
-	//	for (int i = 0; i < 3; ++i) {
-	//		v0(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][0]][i];
-	//		v1(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][1]][i];
-	//		v2(i) = m_mesh->vecVertices[m_mesh->vecCells[idx][2]][i];
-	//	}
-	//	e0 = v1 - v0;
-	//	e1 = v2 - v0;
-	//	return e1.cross(e0).normalized();
-	//}
-
 	int OptimizeMesh::constructTargetTet(std::vector < Eigen::MatrixXd >& target)
 	{
 		Eigen::MatrixXd singleTet;
@@ -110,7 +93,7 @@ namespace optimize_mesh {
 
 	int OptimizeMesh::optimize()
 	{
-		for (int i = 0; i < 10; ++i) {
+		for (int i = 0; i < 1; ++i) {
 			global_type::Mesh tetMesh;
 			Eigen::MatrixXd initTetVer;
 			std::vector < Eigen::MatrixXd > targetPrismTet;

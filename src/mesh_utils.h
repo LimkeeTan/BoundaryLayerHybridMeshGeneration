@@ -17,16 +17,26 @@ namespace mesh_utils {
 		const size_t& value
 	);
 
+	bool isInVector(const std::vector < int >& vec,
+		const int& value
+	);
+
 	int convertVecToMat(global_type::Mesh& mesh);
 
 	int convertMatToVec(global_type::Mesh& mesh);
 
 	int computeTriNormal(const global_type::Mesh& mesh,
+		const std::vector < size_t >& boundary_layer_cell,
 		global_type::MeshNormal& meshNormal
 	);
 
 	int constructVerTriMap(const Eigen::MatrixXi& tri,
-		std::unordered_map < size_t, std::vector < size_t > >& verTriMap
+		std::map < size_t, std::vector < size_t > >& verTriMap
+	);
+
+	int constructVerTriMap(const Eigen::MatrixXi& tri,
+		const std::vector < size_t >& boundary_layer_cell,
+		std::map < size_t, std::vector < size_t > >& verTriMap
 	);
 
 	int constructVerCellMap(const std::vector < std::vector < size_t > >& cell,
