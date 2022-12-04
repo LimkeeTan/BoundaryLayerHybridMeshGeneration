@@ -49,9 +49,21 @@ namespace mesh_utils {
 
 	int Jacobian(const global_type::Mesh& hybridMesh, const std::string& filename);
 
+	int scaled_tet_jacobian(const global_type::Mesh& tetMesh);
+
+	int scaled_prism_jacobian(const global_type::Mesh& prismMesh);
+
+	int scaled_jacobian(const global_type::Mesh& hybridMesh);
+
 	int computeForwardDistance(const global_type::Mesh& mesh,
 		const global_type::MeshNormal& meshNormal,
 		global_type::Parameter& param);
+
+	int prism_quality(const global_type::Mesh& prism_mesh);
+
+	int tet_quality(const global_type::Mesh& tet_mesh);
+
+	int evaluate_quality(const global_type::Mesh& hybridMesh);
 }
 
 #endif

@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 namespace global_type {
+	const double LAYER_THRESHOLD = 0.2;
+
 	struct Mesh {
 		std::vector < std::vector < double > > vecVertices;
 		std::vector < std::vector < size_t > > vecCells;

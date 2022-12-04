@@ -1,6 +1,7 @@
 #ifndef OPTIMIZE_MESH_H_
 #define OPTIMIZE_MESH_H_
 #include "../global_type.h"
+#include "../mesh_io/mesh_io.h"
 
 namespace optimize_mesh {
 	class OptimizeMesh
@@ -24,7 +25,6 @@ namespace optimize_mesh {
 			std::vector < Eigen::MatrixXd >& targetPrismTet
 		);
 		int constructTargetTet(std::vector < Eigen::MatrixXd >& target);
-		//const Eigen::Vector3d& computeTriNorm(const size_t& i) const;
 	};
 }
 

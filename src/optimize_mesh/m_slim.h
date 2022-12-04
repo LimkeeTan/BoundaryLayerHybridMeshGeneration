@@ -69,6 +69,12 @@ namespace slim_opt {
 		Eigen::MatrixXd& initTetVer,
 		std::vector < Eigen::MatrixXd >& targetPrismTet
 	);
+
+	void tet_optimization(const global_type::Mesh& hybrid_mesh,
+		global_type::Mesh& tet_mesh,
+		Eigen::MatrixXd& init_tet_ver,
+		std::vector < Eigen::MatrixXd >& target_tet,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map);
 }
 
 #endif

@@ -12,7 +12,10 @@ namespace generate_mesh {
 			std::cout << "failed to compute vertex normal" << std::endl;
 			return 0;
 		}
-		if (!mesh_utils::computeForwardDistance(m_mesh, m_meshNormal, m_param));
+		if (!mesh_utils::computeForwardDistance(m_mesh, m_meshNormal, m_param)) {
+			std::cout << "failed to compute forward distance " << std::endl;
+			return 0;
+		}
 		std::unordered_map < size_t, std::vector < size_t > > vertMap;
 		if (!march_vertex::computeMarchVertex(m_mesh, m_meshNormal, m_param, m_prismTopo, vertMap)) {
 			std::cout << "failed to generate prism topo" << std::endl;
@@ -33,7 +36,7 @@ namespace generate_mesh {
 			return 0;
 		}
 		//Test
-		mesh_io::saveVTK("data/daijinzhijia_hybrid.vtk", m_mesh.vecVertices, m_mesh.vecCells);
+		//mesh_io::saveVTK("data/daijinzhijia_hybrid.vtk", m_mesh.vecVertices, m_mesh.vecCells);
 		return 1;
 	}
 }

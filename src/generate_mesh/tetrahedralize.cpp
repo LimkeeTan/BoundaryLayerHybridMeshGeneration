@@ -148,6 +148,67 @@ int tetgen::tetrahedralization(const std::vector<Eigen::Vector3d>& hole_points,
         F(i, 2) = tri_c[i][2];
     }
     std::string param = "pq1.2Y";
+    Eigen::MatrixXd TTV;
+    Eigen::MatrixXi TTT;
+    tetrahedralize(hole_points, V, F, param, TTV, TTT, intersectF);
+    Eigen::MatrixXd tet_L;
+    Eigen::MatrixXd tet_v_L;
+    Eigen::MatrixXi tet_c_L;
+    tet_v_L.resize(TTV.rows(), 3);
+    tet_c_L.resize(TTT.rows(), 4);
+    for (size_t j = 0; j < tet_v_L.rows(); ++j) {
+        tet_v_L.row(j) = TTV.row(j);
+    }
+    for (size_t j = 0; j < tet_c_L.rows(); ++j) {
+        Eigen::Vector4i cc;
+        cc[0] = TTT(j, 0);
+        cc[1] = TTT(j, 1);
+        cc[2] = TTT(j, 2);
+        cc[3] = TTT(j, 3);
+        tet_c_L.row(j) = cc;
+    }
+    tet_L.resize(tet_c_L.rows(), 6);
+    for (int i = 0; i < tet_c_L.rows(); ++i) {
+        tet_L(i, 0) = (tet_v_L.row(tet_c_L(i, 3)) - tet_v_L.row(tet_c_L(i, 0))).squaredNorm();
+        tet_L(i, 1) = (tet_v_L.row(tet_c_L(i, 3)) - tet_v_L.row(tet_c_L(i, 1))).squaredNorm();
+        tet_L(i, 2) = (tet_v_L.row(tet_c_L(i, 3)) - tet_v_L.row(tet_c_L(i, 2))).squaredNorm();
+        tet_L(i, 3) = (tet_v_L.row(tet_c_L(i, 1)) - tet_v_L.row(tet_c_L(i, 2))).squaredNorm();
+        tet_L(i, 4) = (tet_v_L.row(tet_c_L(i, 2)) - tet_v_L.row(tet_c_L(i, 0))).squaredNorm();
+        tet_L(i, 5) = (tet_v_L.row(tet_c_L(i, 0)) - tet_v_L.row(tet_c_L(i, 1))).squaredNorm();
+    }
+    tet_L = tet_L.array().sqrt().eval();
+    Eigen::VectorXd tet_vol;
+    tet_vol.resize(tet_L.rows(), 1);
+    for (int t = 0; t < tet_L.rows(); ++t) {
+        const double u = tet_L(t, 0);
+        const double v = tet_L(t, 1);
+        const double w = tet_L(t, 2);
+        const double U = tet_L(t, 3);
+        const double V = tet_L(t, 4);
+        const double W = tet_L(t, 5);
+        const double X = (w - U + v) * (U + v + w);
+        const double x = (U - v + w) * (v - w + U);
+        const double Y = (u - V + w) * (V + w + u);
+        const double y = (V - w + u) * (w - u + V);
+        const double Z = (v - W + u) * (W + u + v);
+        const double z = (W - u + v) * (u - v + W);
+        const double a = sqrt(x * Y * Z);
+        const double b = sqrt(y * Z * X);
+        const double c = sqrt(z * X * Y);
+        const double d = sqrt(x * y * z);
+        tet_vol(t) = sqrt(
+            (-a + b + c + d) *
+            (a - b + c + d) *
+            (a + b - c + d) *
+            (a + b + c - d)) /
+            (192. * u * v * w);
+    }
+    double aveOfTetVol = 0;
+    for (int j = 0; j < tet_vol.size(); ++j) {
+        aveOfTetVol += tet_vol[j];
+    }
+    aveOfTetVol /= tet_vol.size();
+    param = "pq1.2Ya" + std::to_string(aveOfTetVol);
     tetrahedralize(hole_points, V, F, param, TV, TT, intersectF);
     return 1;
 }

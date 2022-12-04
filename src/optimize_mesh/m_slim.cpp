@@ -52,7 +52,7 @@ namespace slim_opt {
 					N.row(k * m + i) /= N.row(k * m + i).norm();
 				}
 			}
-			else {
+			if (RF[i].rows() == 0) {
 				double currVol = std::cbrt(3 * vol(i));
 
 				N.row(i) << 0, 0, 1;
@@ -70,6 +70,12 @@ namespace slim_opt {
 				N.row(3 * m + i) << -0.8165, -0.4714, -0.3333;
 				double a_3 = coeff * currVol;
 				A(3 * m + i) = (pow(a_3, 2) * coeff_2) / 4;
+			}
+			if (RF[i].rows() == 1) {
+				igl::per_face_normals(V, F, N); int norm_rows = N.rows();
+				for (int i = 0; i < norm_rows; i++)
+					N.row(i) /= N.row(i).norm();
+				igl::doublearea(V, F, A); A /= 2.;
 			}
 		}
 		std::vector<Triplet<double> > G_t;
@@ -334,12 +340,12 @@ namespace slim_opt {
 		data.slim_energy = CONFORMAL;
 		data.mesh_improvement_3d = true;
 		data.M.resize(tetCell.rows());
-		data.weight_opt = 10;
+		data.weight_opt = 1;
 		data.M.setConstant(data.weight_opt);
 		data.mesh_area = data.M.sum();
 		data.exp_factor = 1.0;
 
-		data.soft_const_p = 1e4;
+		data.soft_const_p = 1e5;
 
 		data.proximal_p = 0.0001;
 
@@ -1010,19 +1016,6 @@ namespace slim_opt {
 					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
 				}
 			}
-			//tet
-			if (hybridMesh.vecCells[i].size() == 4) {
-				if (!v_boundary_map.count(hybridMesh.vecCells[i][3]) && !v_height_map.count(hybridMesh.vecCells[i][3])) {
-					for (int j = 0; j < 3; ++j) {
-						topPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][j];
-						bottomPoint(j) = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][j];
-					}
-					normal = (topPoint - bottomPoint).normalized();
-					normal *= param.idealHeight[hybridMesh.vecCells[i][0]];
-					normal += bottomPoint;
-					v_height_map.insert(std::make_pair(hybridMesh.vecCells[i][3], normal));
-				}
-			}
 		}
 		return 1;
 	}
@@ -1040,7 +1033,7 @@ namespace slim_opt {
 		std::unordered_map < size_t, Eigen::Vector3d > v_laplace_map;
 		getBoundaryVerConstraints(tetMesh, data, bs, bcs, v_boundary_map);
 		getHeightConstraints(param, hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_height_map);
-		getLaplaceConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_laplace_map);
+		//getLaplaceConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs, v_laplace_map);
 		data.b.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 1);
 		data.bc.resize(v_boundary_map.size() + v_height_map.size() + v_laplace_map.size(), 3);
 		size_t count = 0;
@@ -1074,6 +1067,125 @@ namespace slim_opt {
 		return 1;
 	}
 
+	void getBoundaryVerConstraints(const global_type::Mesh& hybridMesh,
+		const global_type::Mesh& tetMesh,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map,
+		SLIMData& data,
+		std::vector < Eigen::VectorXi >& bs,
+		std::vector < Eigen::MatrixXd >& bcs)
+	{
+		size_t boundary_ver_nums = tetMesh.boundaryVerNums;
+		Eigen::VectorXi b;
+		Eigen::MatrixXd bc;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			//prism
+			if (hybridMesh.vecCells[i].size() == 6) {
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][3])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][2];
+					v_boundary_map[hybridMesh.vecCells[i][3]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][4])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][2];
+					v_boundary_map[hybridMesh.vecCells[i][4]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][5])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][5]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][5]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][5]][2];
+					v_boundary_map[hybridMesh.vecCells[i][5]] = coor;
+				}
+			}
+			//pyramid
+			if (hybridMesh.vecCells[i].size() == 5) {
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][2])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][2];
+					v_boundary_map[hybridMesh.vecCells[i][2]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][3])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][3]][2];
+					v_boundary_map[hybridMesh.vecCells[i][3]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][4])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][4]][2];
+					v_boundary_map[hybridMesh.vecCells[i][4]] = coor;
+				}
+			}
+			//tet
+			if (hybridMesh.vecCells[i].size() == 4) {
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][0])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][0]][2];
+					v_boundary_map[hybridMesh.vecCells[i][0]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][1])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][1]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][1]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][1]][2];
+					v_boundary_map[hybridMesh.vecCells[i][1]] = coor;
+				}
+				if (!v_boundary_map.count(hybridMesh.vecCells[i][2])) {
+					Eigen::Vector3d coor;
+					coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][0];
+					coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][1];
+					coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][2]][2];
+					v_boundary_map[hybridMesh.vecCells[i][2]] = coor;
+				}
+				for (int j = 0; j < 4; ++j) {
+					if (hybridMesh.vecCells[i][j] <= boundary_ver_nums) {
+						if (!v_boundary_map.count(hybridMesh.vecCells[i][j])) {
+							Eigen::Vector3d coor;
+							coor[0] = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][0];
+							coor[1] = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][1];
+							coor[2] = hybridMesh.vecVertices[hybridMesh.vecCells[i][j]][2];
+							v_boundary_map[hybridMesh.vecCells[i][j]] = coor;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void getSoftConstraints(const global_type::Mesh& hybridMesh,
+		const global_type::Mesh& tetMesh,
+		SLIMData& data,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map)
+	{
+		std::vector < Eigen::VectorXi > bs;
+		std::vector < Eigen::MatrixXd > bcs;
+		getBoundaryVerConstraints(hybridMesh, tetMesh, v_boundary_map, data, bs, bcs);
+		data.b.resize(v_boundary_map.size(), 1);
+		data.bc.resize(v_boundary_map.size(), 3);
+		size_t count = 0;
+		std::unordered_map < size_t, Eigen::Vector3d >::iterator it = v_boundary_map.begin();
+		while (it != v_boundary_map.end()) {
+			data.b(count) = it->first;
+			data.bc(count, 0) = it->second(0);
+			data.bc(count, 1) = it->second(1);
+			data.bc(count, 2) = it->second(2);
+			++count;
+			++it;
+		}
+	}
+
 	int slimOptimization(const global_type::Parameter& param,
 		const global_type::Mesh& hybridMesh,
 		global_type::Mesh& tetMesh,
@@ -1093,5 +1205,24 @@ namespace slim_opt {
 		initTetVer = data.V_o;
 		tetMesh.matVertices = data.V_o;
 		return 1;
+	}
+
+	void tet_optimization(const global_type::Mesh& hybrid_mesh,
+		global_type::Mesh& tet_mesh,
+		Eigen::MatrixXd& init_tet_ver,
+		std::vector < Eigen::MatrixXd >& target_tet,
+		std::unordered_map < size_t, Eigen::Vector3d >& v_boundary_map)
+	{
+		SLIMData data;
+		int iter = 10;
+		getSoftConstraints(hybrid_mesh, tet_mesh, data, v_boundary_map);
+		std::cout << "Precompute.." << std::endl;
+		Eigen::MatrixXd tetVer = tet_mesh.matVertices;
+		Eigen::MatrixXi tetCell = tet_mesh.matCells;
+		precompute(tetVer, tetCell, init_tet_ver, data, target_tet);
+		std::cout << "Solve..." << std::endl;
+		data.V_o = slimSolve(data, iter);
+		init_tet_ver = data.V_o;
+		tet_mesh.matVertices = data.V_o;
 	}
 }

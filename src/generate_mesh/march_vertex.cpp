@@ -20,9 +20,9 @@ namespace march_vertex {
 		std::vector < double > marchVertex(3);
 		for (size_t i = 0; i < vertices.size(); ++i) {
 			if (!mesh_utils::isInVector(boundary_vertex, i)) continue;
+			if (noNormal(normalizedNorm[i])) continue;
 			initVertex = vertices[i];
 			vertMap[i].emplace_back(i);
-			if (noNormal(normalizedNorm[i])) continue;
 			for (int j = 0; j < layerNum; ++j) {
 				for (int k = 0; k < 3; ++k) {
 					marchVertex[k] = initVertex[k] + eps[j] * normalizedNorm[i][k];
