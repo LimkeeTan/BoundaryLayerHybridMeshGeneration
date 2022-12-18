@@ -685,6 +685,13 @@ namespace mesh_utils {
 		convertVecToMat(*prism);
 		prism_quality(*prism);
 		delete prism;
+		int pyramid_count = 0;
+		for (size_t i = 0; i < hybridMesh.vecCells.size(); ++i) {
+			if (hybridMesh.vecCells[i].size() == 5) {
+				++pyramid_count;
+			}
+		}
+		std::cout << pyramid_count << std::endl;
 		return 1;
 	}
 }

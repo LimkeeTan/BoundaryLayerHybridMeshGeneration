@@ -12,7 +12,7 @@ int main(int argc, char** argv)
 	std::string outputMeshFile = "data/wanxiangjie_hybrid.vtk";
 	global_type::Parameter param;
 	param.initLayerNumber = 1;
-	param.layerNumber = 3;
+	param.layerNumber = 2;
 	param.initHeight = 0.1;
 	param.userHeight = 1.0;
 	param.increaseRatio = 1.0;
@@ -43,6 +43,15 @@ int main(int argc, char** argv)
 	if (!mesh_utils::evaluate_quality(mesh)) {
 		std::cout << "failed to evalue mesh quality " << std::endl;
 	}
+
+	std::vector < std::vector < double > > pyramid_v = mesh.vecVertices;
+	std::vector < std::vector < size_t > > pyramid_c;
+	for (size_t i = 0; i < mesh.vecCells.size(); ++i) {
+		if (mesh.vecCells[i].size() == 5) {
+			pyramid_c.emplace_back(mesh.vecCells[i]);
+		}
+	}
+	mesh_io::saveVTK("data/pyramid.vtk", pyramid_v, pyramid_c);
 
 	if (!mesh_io::saveVTK(outputMeshFile, mesh.vecVertices, mesh.vecCells)) {
 		std::cout << "failed to save vtk mesh" << std::endl;
